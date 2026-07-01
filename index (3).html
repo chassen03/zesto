@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#d6273f" />
+<title>Zesto — Food, delivered</title>
+<style>
+  :root{
+    --red:#d6273f;--red-deep:#b01e33;--red-soft:#fff0f2;--red-tint:#fde8eb;
+    --ink:#171719;--sub:#71717a;--line:#eeeef1;--field:#f5f5f7;
+    --green:#12924a;--amber:#e8a13a;--poppy:#ffd21f;--poppy-bg:#fff8d6;--card:#fff;
+    --shadow:0 6px 24px rgba(0,0,0,.08);--shadow-lg:0 14px 40px rgba(0,0,0,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow-x:hidden}
+  body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:#fff;color:var(--ink);display:flex;justify-content:center}
+  #phone{width:100%;max-width:100%;background:#fff;min-height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  @media(min-width:600px){body{background:#0c0c0e;align-items:center;padding:16px}#phone{max-width:430px;height:900px;min-height:0;border-radius:38px;box-shadow:var(--shadow-lg);border:10px solid #0c0c0e}}
+  .screen{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .screen::-webkit-scrollbar{display:none}
+  button{font-family:inherit;border:none;cursor:pointer}
+  .btn{width:100%;background:var(--red);color:#fff;border-radius:14px;padding:16px;font-size:15px;font-weight:600;letter-spacing:.2px;box-shadow:0 6px 18px rgba(214,39,63,.28)}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#eab8c0;box-shadow:none}
+  .btn-outline{background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none}
+  .field{width:100%;background:var(--field);border:1px solid transparent;border-radius:12px;padding:14px 15px;font-size:15px}
+  .field:focus{outline:none;border-color:var(--red);background:#fff}
+  .pill{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--field);color:var(--sub)}
+  .row{display:flex;align-items:center;justify-content:space-between}
+  .muted{color:var(--sub)}
+  .topbar{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:10}
+  .cardbox{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;max-width:100%}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--red-soft);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:1.5px solid var(--red);flex:none}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.18);z-index:50;animation:up .28s cubic-bezier(.2,.8,.2,1);max-height:80%;display:flex;flex-direction:column}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet-pad{padding:22px 20px 26px}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:40;animation:fade .2s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:#1f1f22;color:#fff;font-size:12.5px;padding:12px 16px;border-radius:12px;z-index:120;max-width:88%;text-align:center;line-height:1.4;box-shadow:var(--shadow-lg)}
+  .spin{width:26px;height:26px;border:3px solid var(--red-tint);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite;display:inline-block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .fadein{animation:fi .4s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .strike{position:relative;opacity:.5}
+  .strike:after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--sub);transform:rotate(-4deg)}
+  .filtchip{flex:none;padding:8px 14px;border-radius:20px;background:var(--field);font-size:12.5px;color:var(--sub);white-space:nowrap}
+  [style*="overflow-x:auto"]{max-width:100%}
+  /* --- motion: lots is happening --- */
+  .dishframe{position:relative}
+  .dishframe .orbit{position:absolute;font-size:16px;animation:orbit 6s linear infinite;will-change:transform}
+  @keyframes orbit{
+    0%{transform:rotate(0deg) translateX(64px) rotate(0deg)}
+    100%{transform:rotate(360deg) translateX(64px) rotate(-360deg)}
+  }
+  .marquee{overflow:hidden;white-space:nowrap}
+  .marquee b{display:inline-block;padding-left:100%;animation:mq 12s linear infinite}
+  @keyframes mq{to{transform:translateX(-100%)}}
+  .pulse{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .bob{animation:bob 2.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .flamerow span{display:inline-block;animation:bob 1.8s ease-in-out infinite}
+  .flamerow span:nth-child(2){animation-delay:.2s}
+  .flamerow span:nth-child(3){animation-delay:.4s}
+  .flamerow span:nth-child(4){animation-delay:.6s}
+  .blink{animation:blink 1.4s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:.35}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="phone"><div class="screen" id="screen"></div></div>
+<script>
+const screen=document.getElementById("screen");
+
+// ---------------- DATA ----------------
+// Restaurants: quirky names + a SPECIFIC category each (no "multi-cuisine")
+const RESTOS=[
+  ["Biryani By Kilo-Meter","Biryani","🍛","4.5","30–35 min"],
+  ["The Naan-Sense Kitchen","North Indian","🫓","4.3","35–40 min"],
+  ["Curry On Regardless","Home-style Curries","🥘","4.2","40–45 min"],
+  ["Dal Me Kuch Kaala","Comfort Dal & Rice","🍚","4.4","25–30 min"],
+  ["Chaat The Point","Street Chaat","🥗","4.1","20–25 min"],
+  ["Idli Ever After","South Indian","🥞","4.6","30–35 min"],
+  ["Dosa-n't Stop Believin'","Dosa & Uttapam","🌯","4.3","30–35 min"],
+  ["Paneer Pressure","Paneer Specials","🧆","4.2","35–40 min"],
+  ["Momo Magic Circle","Momos & Tibetan","🥟","4.5","25–30 min"],
+  ["Gobi Wan Kenobi","Indo-Chinese","🍜","4.0","40–45 min"],
+  ["Frankie Goes To Bandra","Rolls & Frankies","🌯","4.2","20–25 min"],
+  ["Halwa True Love","Mithai & Desserts","🍮","4.7","30–35 min"],
+];
+
+// Category dish pools -> each restaurant renders 10+ items appropriate to its category.
+// Format per item: [sassy name, price, emoji, real dish]. If `real` matches a hero MENU entry, tapping opens the full detail page.
+const CATEGORY_MENUS={
+  "Biryani":[
+    ["The Long Grain Situation",249,"🍛","Chicken Biryani"],["Existential Rice Crisis",219,"🍚","Veg Biryani"],
+    ["Mutton & Mayhem",329,"🍖","Mutton Biryani"],["Egg-sistential Dread",189,"🥚","Egg Biryani"],
+    ["Prawn To Be Wild",359,"🦐","Prawn Biryani"],["The Dum Also Rises",239,"♨️","Hyderabadi Dum Biryani"],
+    ["Rice Rice Baby",199,"🍚","Jeera Rice"],["Curd You Believe It",49,"🥛","Raita"],
+    ["Boiled Down To This",59,"🥚","Boiled Egg"],["Salan Days",69,"🍲","Mirchi Ka Salan"],
+    ["Sheer Audacity",99,"🍮","Sheer Khurma"],["Gulab-solutely",99,"🍮","Gulab Jamun"],
+  ],
+  "North Indian":[
+    ["Cottage Cheese Chronicles",229,"🧆","Paneer Butter Masala"],["Buttery Betrayal",239,"🍲","Dal Makhani"],
+    ["Cluck Norris",279,"🍗","Butter Chicken"],["Pillowy Denial",45,"🫓","Butter Naan"],
+    ["Garlic Getaway",55,"🧄","Garlic Naan"],["Round & Rebellious",199,"🫓","Chole Bhature"],
+    ["Yellow Mood",149,"🟡","Dal Tadka"],["Spinach Inquisition",219,"🥬","Palak Paneer"],
+    ["Kadai-ing Inside",229,"🍲","Kadai Paneer"],["Rajma To The Moon",169,"🫘","Rajma Chawal"],
+    ["Tandoori Drama",289,"🍗","Tandoori Chicken"],["Roti Roti Bang Bang",25,"🫓","Tandoori Roti"],
+  ],
+  "Home-style Curries":[
+    ["Buttery Betrayal",239,"🍲","Dal Makhani"],["Yellow Mood",149,"🟡","Dal Tadka"],
+    ["Kadhi-ously Good",159,"🥣","Kadhi Chawal"],["Aloo-f And Distant",139,"🥔","Aloo Gobi"],
+    ["Bhindi Vindaloo-di",149,"🫛","Bhindi Masala"],["Egg-xactly What I Needed",169,"🥚","Egg Curry"],
+    ["Chana In A Million",149,"🫘","Chana Masala"],["Mixed Signals",159,"🥘","Mix Veg"],
+    ["Rice To The Occasion",89,"🍚","Steamed Rice"],["Roti Confusion",20,"🫓","Roti"],
+    ["Curd's The Word",49,"🥛","Curd"],["Sweet Nothing",99,"🍮","Gulab Jamun"],
+  ],
+  "Comfort Dal & Rice":[
+    ["Yellow Mood",149,"🟡","Dal Tadka"],["Buttery Betrayal",239,"🍲","Dal Makhani"],
+    ["Khichdi Committee",159,"🍚","Khichdi"],["Curd Rice, Don't Care",129,"🍚","Curd Rice"],
+    ["Rajma To The Moon",169,"🫘","Rajma Chawal"],["Rice Rice Baby",99,"🍚","Jeera Rice"],
+    ["Plain Sight",79,"🍚","Steamed Rice"],["Papad-um Opera",29,"🫓","Roasted Papad"],
+    ["Ghee Whiz",39,"🧈","Ghee Rice add-on"],["Pickle Me This",19,"🥒","Mixed Pickle"],
+    ["Kadhi Longing",149,"🥣","Kadhi"],["Sweet Surrender",99,"🍮","Gulab Jamun"],
+  ],
+  "Street Chaat":[
+    ["Pani In The Neck",79,"💦","Pani Puri"],["Bhel Of A Time",89,"🥗","Bhel Puri"],
+    ["Sev-en Deadly Sins",99,"🥗","Sev Puri"],["Dahi Days",109,"🥛","Dahi Puri"],
+    ["Tikki Tikki Boom",99,"🥔","Aloo Tikki"],["Papdi Don't Preach",99,"🥗","Papdi Chaat"],
+    ["Pav-erful Feelings",99,"🍔","Vada Pav"],["Bhaji Business",129,"🍞","Pav Bhaji"],
+    ["Samosa Impossible",49,"🔺","Samosa"],["Kachori Story",49,"🟤","Kachori"],
+    ["Dabeli With It",69,"🍔","Dabeli"],["Ragda Patties & Chill",119,"🥘","Ragda Pattice"],
+  ],
+  "South Indian":[
+    ["Crispy Life Choices",149,"🥞","Masala Dosa"],["Plain & Simple-ton",119,"🥞","Plain Dosa"],
+    ["Rava-lution",159,"🥞","Rava Dosa"],["Idli Ever After",99,"⚪","Idli Sambar"],
+    ["Vada The Hell",89,"🍩","Medu Vada"],["Upma Downma",99,"🍚","Upma"],
+    ["Pongal Bell",119,"🍚","Ven Pongal"],["Uttapam Yourself",139,"🥞","Uttapam"],
+    ["Filter This",49,"☕","Filter Coffee"],["Sambar-dinary",59,"🍲","Extra Sambar"],
+    ["Coconut Case",29,"🥥","Coconut Chutney"],["Sweet Pongal Nothing",99,"🍮","Sweet Pongal"],
+  ],
+  "Dosa & Uttapam":[
+    ["Crispy Life Choices",149,"🥞","Masala Dosa"],["Paper Trail",129,"📄","Paper Dosa"],
+    ["Rava-lution",159,"🥞","Rava Dosa"],["Cheese Louise",179,"🧀","Cheese Dosa"],
+    ["Mysore Sore Loser",159,"🌶️","Mysore Masala Dosa"],["Onion You Glad",139,"🧅","Onion Uttapam"],
+    ["Uttapam Yourself",139,"🥞","Tomato Uttapam"],["Ghee Happens",169,"🧈","Ghee Roast"],
+    ["Set For Life",129,"🥞","Set Dosa"],["Idli Ever After",99,"⚪","Idli"],
+    ["Filter This",49,"☕","Filter Coffee"],["Sambar-dinary",59,"🍲","Extra Sambar"],
+  ],
+  "Paneer Specials":[
+    ["Cottage Cheese Chronicles",229,"🧆","Paneer Butter Masala"],["Spinach Inquisition",219,"🥬","Palak Paneer"],
+    ["Kadai-ing Inside",229,"🍲","Kadai Paneer"],["Shahi Maharaja",239,"👑","Shahi Paneer"],
+    ["Tikka Take Notice",249,"🔥","Paneer Tikka"],["Chilli Willy",229,"🌶️","Chilli Paneer"],
+    ["Bhurji Your Enthusiasm",199,"🍳","Paneer Bhurji"],["Matar Of Fact",209,"🟢","Matar Paneer"],
+    ["Pillowy Denial",45,"🫓","Butter Naan"],["Garlic Getaway",55,"🧄","Garlic Naan"],
+    ["Roti Roti Bang Bang",25,"🫓","Tandoori Roti"],["Sweet Nothing",99,"🍮","Gulab Jamun"],
+  ],
+  "Momos & Tibetan":[
+    ["Steamed Little Secrets",169,"🥟","Veg Momos"],["Cluck In A Blanket",199,"🍗","Chicken Momos"],
+    ["Fried & Tested",189,"🍤","Fried Momos"],["Schezwan Redemption",209,"🌶️","Schezwan Momos"],
+    ["Tandoori Momo Drama",229,"🔥","Tandoori Momos"],["Thukpa To The Future",179,"🍜","Veg Thukpa"],
+    ["Soup-er Natural",149,"🥣","Hot & Sour Soup"],["Spring In My Step",149,"🌯","Spring Roll"],
+    ["Noodle Doodle",190,"🍜","Hakka Noodles"],["Mo:Mo: Problems",229,"🥟","Cheese Corn Momos"],
+    ["Chutney Music",19,"🌶️","Momo Chutney"],["Sweet Nothing",99,"🍮","Darjeeling Dessert"],
+  ],
+  "Indo-Chinese":[
+    ["Manchurian Candidate",209,"🍜","Veg Manchurian"],["Noodle Doodle",190,"🍜","Hakka Noodles"],
+    ["Chilli Willy",229,"🌶️","Chilli Paneer"],["Fried Rice Gump",180,"🍚","Veg Fried Rice"],
+    ["Schezwan Redemption",199,"🌶️","Schezwan Noodles"],["Gobi Wan Kenobi",189,"🥦","Gobi Manchurian"],
+    ["Soup-er Natural",149,"🥣","Manchow Soup"],["Spring In My Step",149,"🌯","Spring Roll"],
+    ["Triple The Trouble",229,"🍚","Triple Schezwan Rice"],["Honey I Shrunk The Chilli",239,"🍗","Honey Chilli Potato"],
+    ["Corn Again",149,"🌽","Sweet Corn Soup"],["Dragon Roll Deep",199,"🐉","Dragon Roll"],
+  ],
+  "Rolls & Frankies":[
+    ["Wrap Battle",149,"🌯","Paneer Frankie"],["Cluck And Roll",169,"🍗","Chicken Roll"],
+    ["Egg-splosive",129,"🥚","Egg Roll"],["Aloo-minati",119,"🥔","Aloo Frankie"],
+    ["Schezwan Redemption",159,"🌶️","Schezwan Roll"],["Double Trouble",189,"🥚","Double Egg Roll"],
+    ["Paneer Pressure",159,"🧆","Paneer Tikka Roll"],["Veg Out",119,"🥬","Veg Frankie"],
+    ["Cheese Louise",169,"🧀","Cheese Roll"],["Frankie Says Relax",149,"🌯","Classic Frankie"],
+    ["Fries Before Guys",99,"🍟","Masala Fries"],["Sweet Nothing",99,"🍮","Gulab Jamun"],
+  ],
+  "Mithai & Desserts":[
+    ["Sweet Nothing",99,"🍮","Gulab Jamun"],["Orange You Glad",89,"🟠","Jalebi"],
+    ["Spongebob Rasgulla",99,"⚪","Rasgulla"],["Ras The Occasion",129,"🍥","Rasmalai"],
+    ["Kheer We Go",99,"🍚","Rice Kheer"],["Halwa True Love",119,"🥕","Gajar Halwa"],
+    ["Kulfi Or Nothing",89,"🍦","Kulfi"],["Laddu Da Vinci",79,"🟡","Motichoor Laddu"],
+    ["Barfi Right Back",99,"⬜","Kaju Katli"],["Jamun The Rocks",119,"🍮","Kala Jamun"],
+    ["Falooda Or Not",129,"🥤","Falooda"],["Peda-l To The Metal",79,"🟤","Milk Peda"],
+  ],
+};
+
+// Sassy cryptic menu names -> what they actually are (with rich detail for the dish page)
+const MENU=[
+  {code:"The Long Grain Situation", price:249, emoji:"🍛", real:"Chicken Biryani",
+    origin:"Hyderabad, India (with Persian ancestry)",
+    facts:"Legend has it biryani travelled with Persian traders and was perfected in the royal kitchens of the Nizams. The word comes from the Persian 'birian' — to fry before cooking. Every family swears their version is the only correct one, and entire friendships have reportedly ended over whether potato belongs in it. It is less a dish and more a low-grade national argument served on a plate.",
+    ingredients:["Basmati rice","Chicken","Yoghurt","Fried onions","Saffron","Whole spices","Mint & coriander"]},
+  {code:"Existential Rice Crisis", price:219, emoji:"🍚", real:"Veg Biryani",
+    origin:"Disputed — claimed by several Indian regions at once",
+    facts:"The vegetarian biryani exists in a permanent identity crisis: purists insist it is merely 'pulao wearing a costume', while its defenders will fight you in the street. It rose to fame feeding temple crowds and wedding halls where thousands needed feeding at once. Nobody agrees where it was invented, which is somehow the most Indian thing about it.",
+    ingredients:["Basmati rice","Mixed vegetables","Yoghurt","Fried onions","Saffron","Whole spices"]},
+  {code:"Cottage Cheese Chronicles", price:229, emoji:"🧆", real:"Paneer Butter Masala",
+    origin:"Delhi, India — mid-20th century",
+    facts:"Born in the same Delhi kitchens that gave the world butter chicken, this dish was reportedly a happy accident of leftover gravy and too much cream. Paneer itself is thousands of years old, but drowning it in a silky tomato-butter sauce is a gloriously modern indulgence. It is the dish ordered by people who claim they 'don't eat spicy'.",
+    ingredients:["Paneer","Tomatoes","Butter","Cream","Cashew paste","Kasuri methi","Spices"]},
+  {code:"Buttery Betrayal", price:239, emoji:"🍲", real:"Dal Makhani",
+    origin:"Punjab, India",
+    facts:"Slow-cooked overnight over dying embers, dal makhani was the show-off cousin of everyday lentils — reserved for weddings and guests you wanted to impress. The 'betrayal' is the butter and cream hiding inside what looks like a humble bowl of dal. It has ended more diets than any dessert.",
+    ingredients:["Black urad dal","Rajma","Butter","Cream","Tomatoes","Ginger-garlic","Spices"]},
+  {code:"Round & Rebellious", price:199, emoji:"🫓", real:"Chole Bhature",
+    origin:"Punjab / Delhi, India",
+    facts:"A breakfast that behaves like a dare: a balloon of fried bread the size of your face, paired with fiery chickpeas. Street vendors in Delhi turned it into an art form, and eating a whole plate before noon is considered a personality trait. Cardiologists have opinions. Nobody listens.",
+    ingredients:["Chickpeas","Refined flour","Onion","Tomato","Amchur","Chole masala"]},
+  {code:"Crispy Life Choices", price:149, emoji:"🥞", real:"Masala Dosa",
+    origin:"Karnataka, South India",
+    facts:"A fermented rice-and-lentil crêpe that can stretch longer than your arm, the dosa was supposedly invented in the temple town of Udupi. The masala version — stuffed with spiced potato — turned a simple breakfast into a competitive sport of who can order the longest one. It arrives looking like architecture.",
+    ingredients:["Rice batter","Urad dal","Potato","Mustard seeds","Curry leaves","Turmeric"]},
+  {code:"Steamed Little Secrets", price:169, emoji:"🥟", real:"Veg Momos",
+    origin:"Tibet & the Himalayas (now adopted by all of India)",
+    facts:"Momos crossed the Himalayas and were promptly adopted by every Indian street corner, which then invented fifty chutneys the originals never asked for. What began as humble mountain dumplings is now sold with a fiery red 'schezwan' sauce that would horrify a Tibetan grandmother. Delicious treason.",
+    ingredients:["Refined flour","Cabbage","Carrot","Spring onion","Ginger","Soy sauce"]},
+  {code:"Manchurian Candidate", price:209, emoji:"🍜", real:"Veg Manchurian",
+    origin:"Kolkata, India (not Manchuria!)",
+    facts:"Despite the name, this has nothing to do with Manchuria — it was invented by a Kolkata chef in the 1970s improvising for Chinese-food-craving Indians. It is the flagship of 'Indian-Chinese', a cuisine that exists nowhere in China and is beloved everywhere in India. A glorious geographic misunderstanding.",
+    ingredients:["Cabbage","Cornflour","Garlic","Ginger","Soy sauce","Green chilli","Spring onion"]},
+  {code:"Tandoori Drama", price:289, emoji:"🍗", real:"Tandoori Chicken",
+    origin:"Punjab, India",
+    facts:"Marinated in yoghurt and spices, then blasted in a searing clay tandoor, this dish gets its theatrical red colour from chilli and (historically) a lot of food colouring. It was popularised in the 1940s and became so iconic that it practically has its own fan club. Smoke, char, and maximum drama.",
+    ingredients:["Chicken","Yoghurt","Red chilli","Ginger-garlic","Lemon","Garam masala"]},
+  {code:"Sweet Nothing", price:99, emoji:"🍮", real:"Gulab Jamun",
+    origin:"Persia / medieval India",
+    facts:"Deep-fried dough balls soaked in rose-scented syrup, gulab jamun traces back to Persian 'luqmat al-qadi'. The name literally means 'rose berry'. It is physically impossible to eat just one, a fact confirmed by every wedding buffet in history. Warm, sticky, and utterly unbothered by your resolutions.",
+    ingredients:["Milk solids (khoya)","Flour","Sugar syrup","Rose water","Cardamom"]},
+];
+
+// Big dictionary of dishes an Indian might type -> maps to the closest cryptic menu item
+const DISH_DICT = {
+  "biryani":0,"chicken biryani":0,"hyderabadi biryani":0,"mutton biryani":0,"dum biryani":0,
+  "veg biryani":1,"vegetable biryani":1,"pulao":1,"pulav":1,"jeera rice":1,
+  "paneer":2,"paneer butter masala":2,"shahi paneer":2,"kadai paneer":2,"palak paneer":2,"matar paneer":2,"paneer tikka masala":2,"butter chicken":2,
+  "dal":3,"dal makhani":3,"dal tadka":3,"dal fry":3,"rajma":3,"kadhi":3,
+  "chole":4,"chole bhature":4,"chana masala":4,"chhole":4,"bhature":4,"chana":4,"rajma chawal":3,
+  "dosa":5,"masala dosa":5,"plain dosa":5,"rava dosa":5,"paper dosa":5,"idli":5,"vada":5,"uttapam":5,"sambar":5,"upma":5,"pongal":5,"medu vada":5,
+  "momo":6,"momos":6,"veg momos":6,"chicken momos":6,"dumpling":6,"dumplings":6,
+  "manchurian":7,"veg manchurian":7,"gobi manchurian":7,"hakka noodles":7,"noodles":7,"chilli paneer":7,"fried rice":7,"spring roll":7,"chowmein":7,"chow mein":7,
+  "tandoori chicken":8,"chicken tikka":8,"tikka":8,"kebab":8,"seekh kebab":8,"tandoori":8,"chicken":8,
+  "gulab jamun":9,"jamun":9,"jalebi":9,"rasgulla":9,"rasmalai":9,"kheer":9,"halwa":9,"gajar halwa":9,"kulfi":9,"dessert":9,"sweet":9,"mithai":9,
+  // extras that still resolve to something sensible
+  "samosa":4,"pav bhaji":4,"vada pav":4,"pani puri":4,"bhel":4,"bhel puri":4,"chaat":4,"kachori":4,
+  "naan":2,"butter naan":2,"garlic naan":2,"roti":2,"paratha":2,"aloo paratha":2,"thali":1,"khichdi":3,"curd rice":1,"poha":5,"dhokla":5,"thepla":2,
+};
+
+// ---------------- STATE ----------------
+const M={
+  page:"splash", taps:0, startTime:null,
+  user:{name:"",phone:"",cc:"+379",flag:"🇻🇦",addr:{a:"",b:"",c:"",d:""}},
+  cart:[], memorizedCode:"", codeMsg:"",
+  listSearchShown:false,           // Page II: search only after tapping Options/Restaurants
+  activeDish:0,
+  activeResto:0,                   // which restaurant is open
+  activeMenu:null,                 // an ad-hoc dish object when tapping a non-hero item
+  pastOrders:[
+    ["Biryani By Kilo-Meter","The Long Grain Situation × 1","₹336","2 days ago"],
+    ["Momo Magic Circle","Steamed Little Secrets × 2","₹410","last week"],
+    ["Halwa True Love","Sweet Nothing × 3","₹289","3 weeks ago"],
+  ],
+};
+function tap(){M.taps++;}
+function nav(p){tap();M.page=p;try{screen.scrollTo(0,0)}catch(e){}render();}
+function toast(msg,ms=2600){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.getElementById("phone").appendChild(t);setTimeout(()=>t.remove(),ms);}
+function money(n){return "₹"+n;}
+function cartCount(){return M.cart.reduce((s,i)=>s+i.qty,0);}
+function cartSubtotal(){return M.cart.reduce((s,i)=>s+i.price*i.qty,0);}
+function avatar(){return `<div class="avatar" onclick="nav('profile')">👤</div>`;}
+
+// small helper: animated orbiting emojis around a dish tile
+function orbitTile(emoji,size){
+  return `<div class="dishframe" style="width:${size}px;height:${size}px;border-radius:14px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px">
+    <span class="pulse">${emoji}</span>
+    <span class="orbit" style="animation-duration:5s">✨</span>
+    <span class="orbit" style="animation-duration:7s;animation-delay:-2s">🔥</span>
+  </div>`;
+}
+
+// ---------------- SPLASH ----------------
+function splash(){
+  screen.innerHTML=`
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--red),var(--red-deep));color:#fff">
+    <div class="fadein" style="text-align:center">
+      <div style="font-size:15px;letter-spacing:6px;opacity:.85;font-weight:600">ZESTO</div>
+      <div style="font-size:40px;margin-top:8px" class="bob">🍜</div>
+      <div style="margin-top:26px;width:200px;height:6px;background:rgba(255,255,255,.25);border-radius:6px;overflow:hidden">
+        <div id="bar" style="height:100%;width:0;background:#fff;border-radius:6px;transition:width .4s"></div>
+      </div>
+      <div id="loadtxt" style="font-size:12px;margin-top:14px;opacity:.85">Preparing your experience…</div>
+    </div>
+  </div>`;
+  const bar=document.getElementById("bar"),txt=document.getElementById("loadtxt");
+  const seq=[20,48,76,100,0,34,68,100];let i=0;
+  const tick=()=>{
+    if(i>=seq.length){M.startTime=Date.now();nav("address");return;}
+    const p=seq[i];bar.style.width=p+"%";
+    if(p===100&&i<4)txt.textContent="Almost there…";
+    else if(p===0)txt.textContent="Just a moment, optimising…";
+    else if(i>=5)txt.textContent="Finalising the finishing touches…";
+    i++;setTimeout(tick,p===0?520:640);
+  };
+  setTimeout(tick,500);
+}
+
+// ---------------- PAGE I: ADDRESS ----------------
+function address(){
+  const a=M.user.addr;
+  screen.innerHTML=`
+  <div class="topbar"><div style="font-weight:800;font-size:16px">Add delivery details</div>${avatar()}</div>
+  <div style="padding:16px 18px 8px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7)">
+    <div style="font-size:13px;color:#7a1523;font-weight:600">📍 We found you near Marine Drive.</div>
+  </div>
+  <div style="padding:16px 18px 40px">
+    <div style="font-size:18px;font-weight:800">Where should we deliver?</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">We've located you — now please add your full address. Each field needs at least 6 characters.</div>
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.4px;margin:18px 0 8px">MOBILE NUMBER</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="openCC()" style="flex:none;background:var(--field);border-radius:12px;padding:14px 12px;font-size:15px;display:flex;align-items:center;gap:6px">
+        <span>${M.user.flag}</span><span>${M.user.cc}</span><span style="color:var(--sub);font-size:12px">▾</span></button>
+      <input class="field" placeholder="Mobile number" inputmode="numeric" value="${M.user.phone}" oninput="M.user.phone=this.value.replace(/\\D/g,'').slice(0,10)" />
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.4px;margin:20px 0 8px">ADDRESS</div>
+    <input class="field" style="margin-bottom:10px" placeholder="a. Flat / House no. (min 6 chars)" value="${a.a}" oninput="M.user.addr.a=this.value" />
+    <input class="field" style="margin-bottom:10px" placeholder="b. Building / Street (min 6 chars)" value="${a.b}" oninput="M.user.addr.b=this.value" />
+    <input class="field" style="margin-bottom:10px" placeholder="c. Area / Landmark (min 6 chars)" value="${a.c}" oninput="M.user.addr.c=this.value" />
+    <input class="field" placeholder="d. PIN code (6 digits)" inputmode="numeric" value="${a.d}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6);M.user.addr.d=this.value" />
+    <button class="btn" style="margin-top:22px" onclick="saveAddress()">Save & see restaurants</button>
+  </div>`;
+}
+function saveAddress(){
+  tap();
+  if(M.user.cc!=="+91"){toast("Your location seems to be in India — please select India (+91) as your country code to continue.",3400);return;}
+  const a=M.user.addr;
+  if((a.a||"").length<6){toast("Field a needs at least 6 characters.");return;}
+  if((a.b||"").length<6){toast("Field b needs at least 6 characters.");return;}
+  if((a.c||"").length<6){toast("Field c needs at least 6 characters.");return;}
+  if((a.d||"").length!==6){toast("Please enter a valid 6-digit PIN code.");return;}
+  nav("list");
+}
+
+// ---------------- PAGE II: LIST (search hidden until Options/Restaurants tapped) ----------------
+function list(){
+  screen.innerHTML=`
+  <div class="topbar">
+    ${M.listSearchShown
+      ? `<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px" onclick="nav('search')"><span>🔍</span><span style="color:var(--sub);font-size:14px">Search dishes</span></div>`
+      : `<div style="font-weight:800;font-size:16px">Browse</div>`}
+    <div style="margin-left:12px">${avatar()}</div>
+  </div>
+  <div style="padding:16px 18px 100px">
+    ${!M.listSearchShown?`<div class="muted" style="font-size:12px;margin-bottom:12px">Tap Options or Restaurants to begin.</div>`:``}
+    <div class="cardbox">
+      ${[["🍛 Options","options"],["🍽️ Restaurants","restaurants"],["🎟️ Codes & offers","codes"]].map((x,i)=>`
+        <div class="row" onclick="listTap('${x[1]}')" style="padding:16px 14px;${i<2?'border-bottom:1px solid var(--line)':''};cursor:pointer">
+          <div style="font-size:15px;font-weight:600">${x[0]}</div><span style="color:var(--sub)">›</span></div>`).join("")}
+    </div>
+
+    <div style="margin-top:22px;font-size:14px;font-weight:800">Today's offers</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">Note the codes down — you'll type them yourself later.</div>
+    ${[["ZESTO60","60% off up to ₹120"],["FREEDEL399","Free delivery over ₹399"],["BINGE250","Flat ₹250 off over ₹899"]].map(c=>`
+      <div class="cardbox" style="margin-top:10px;padding:14px">
+        <div style="font-size:15px;font-weight:800;letter-spacing:.5px">${c[0]}</div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${c[1]}</div>
+        <div style="text-align:right"><span style="font-size:11px;color:var(--amber);font-weight:600">no copy button — memorise it</span></div>
+      </div>`).join("")}
+  </div>`;
+}
+function listTap(which){
+  tap();
+  if(which==="codes"){ openCodes(); return; }
+  M.listSearchShown=true;              // reveal the search bar from now on
+  if(which==="restaurants"){ M.page="restolist"; render(); return; }
+  M.page="search"; render();           // "options" -> search
+}
+function openCodes(){
+  showSheet(`<div class="sheet-pad">
+    <div style="font-size:16px;font-weight:800">Offer codes</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:6px">Please remember these. They can only be typed manually at the cart.</div>
+    ${["ZESTO60","FREEDEL399","BINGE250"].map(c=>`<div style="margin-top:12px;font-size:16px;font-weight:800;letter-spacing:1px">${c}</div>`).join("")}
+    <button class="btn" style="margin-top:20px" onclick="closeSheet()">Got it (I'll remember)</button>
+  </div>`);
+}
+
+// ---------------- PAGE III: SEARCH (works! but resists first, with an explicit Oops) ----------------
+function search(){
+  screen.innerHTML=`
+  <div class="topbar">
+    <span onclick="nav('list')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="flex:1;margin:0 10px;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px">
+      <span>🔍</span><input id="sq" class="field" style="padding:0;background:transparent;font-size:14px" placeholder="Search any dish — try 'biryani'" onkeydown="if(event.key==='Enter')runSearch()" />
+    </div>${avatar()}
+  </div>
+  <div style="padding:14px 18px 4px">
+    <button class="btn" onclick="runSearch()">Search</button>
+    <div id="smsg" style="font-size:13px;margin-top:12px;min-height:18px"></div>
+    <div id="sresults" style="margin-top:6px"></div>
+  </div>`;
+  document.getElementById("sq").focus?.();
+}
+let searchAttempt=0;
+function runSearch(){
+  tap();
+  const q=(document.getElementById("sq").value||"").trim().toLowerCase();
+  const msg=document.getElementById("smsg"), box=document.getElementById("sresults");
+  box.innerHTML="";
+  if(!q){ msg.style.color="var(--sub)"; msg.textContent="Type something first."; return; }
+  msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Searching…`;
+
+  setTimeout(()=>{
+    searchAttempt++;
+    // First attempt ALWAYS "breaks" — user is told clearly it didn't work
+    if(searchAttempt===1){
+      msg.style.color="var(--red)";
+      msg.innerHTML=`😅 Oops! Search hiccuped and couldn't fetch results. Please tap Search once more.`;
+      return;
+    }
+    // From 2nd attempt on, search genuinely works against the dictionary
+    const idx = resolveDish(q);
+    if(idx===null){
+      // no match -> suggestions or send to options
+      const sugg = suggest(q);
+      msg.style.color="var(--red)";
+      msg.innerHTML = `🤔 We couldn't find “${escapeHtml(q)}”.`;
+      box.innerHTML = `
+        ${sugg.length?`<div style="font-size:12.5px;color:var(--sub);margin:8px 0 6px">Did you mean:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">${sugg.map(s=>`<span class="pill" onclick="document.getElementById('sq').value='${s}';runSearch()">${s}</span>`).join("")}</div>`:""}
+        <button class="btn btn-outline" style="margin-top:14px" onclick="nav('list')">Browse the Options page instead</button>`;
+      return;
+    }
+    const d=MENU[idx];
+    msg.style.color="var(--green)";
+    msg.innerHTML=`Found it — served here as “${d.code}”. (${d.real})`;
+    box.innerHTML=`
+      <div class="cardbox fadein" onclick="M.activeDish=${idx};nav('dish')" style="margin-top:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;cursor:pointer">
+        ${orbitTile(d.emoji,56)}
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${d.code}</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:2px">${money(d.price)} · tap to see details</div>
+        </div><span style="color:var(--sub)">›</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--sub);margin-top:10px">Showing 1 match. Prefer to scroll? There are 20+ options on the Options page.</div>`;
+  },1300);
+}
+function resolveDish(q){
+  if(DISH_DICT.hasOwnProperty(q)) return DISH_DICT[q];
+  // loose contains match
+  for(const k in DISH_DICT){ if(k.includes(q)||q.includes(k)) return DISH_DICT[k]; }
+  // match against the cryptic names / real names too
+  for(let i=0;i<MENU.length;i++){
+    if(MENU[i].real.toLowerCase().includes(q)||MENU[i].code.toLowerCase().includes(q)) return i;
+  }
+  return null;
+}
+function suggest(q){
+  const keys=Object.keys(DISH_DICT);
+  const scored=keys.map(k=>[k, sim(k,q)]).sort((a,b)=>b[1]-a[1]);
+  return [...new Set(scored.filter(s=>s[1]>0).slice(0,4).map(s=>s[0]))];
+}
+function sim(a,b){ // crude shared-letter overlap
+  const A=new Set(a.replace(/\s/g,"")), B=new Set(b.replace(/\s/g,""));
+  let c=0; A.forEach(x=>{if(B.has(x))c++;}); return c;
+}
+function escapeHtml(s){return s.replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+
+// ---------------- RESTAURANT LIST (browse all, tap one) ----------------
+function restolist(){
+  screen.innerHTML=`
+  <div class="topbar"><span onclick="nav('list')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Restaurants near you</div>${avatar()}</div>
+  <div style="padding:14px 18px 100px">
+    <div class="muted" style="font-size:12px;margin-bottom:10px">${RESTOS.length} places · tap one to see its menu</div>
+    ${RESTOS.map((r,i)=>`<div class="cardbox" onclick="openResto(${i})" style="margin-bottom:12px;cursor:pointer">
+      <div style="height:96px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:34px" class="dishframe">
+        <span class="pulse">${r[2]}</span><span class="orbit" style="animation-duration:${5+i%3}s">✨</span>
+      </div>
+      <div style="padding:12px 14px">
+        <div class="row"><div style="font-size:15px;font-weight:700">${r[0]}</div>
+          <div style="background:var(--green);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px">★ ${r[3]}</div></div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${r[1]}</div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:6px">⏱ ${r[4]} · 8.2 km</div>
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+function openResto(i){ tap(); M.activeResto=i; M.page="restaurant"; render(); }
+
+// ---------------- RESTAURANT (its own category menu, 10+ dishes) ----------------
+function restaurant(){
+  const r=RESTOS[M.activeResto]||RESTOS[0];
+  const menu=CATEGORY_MENUS[r[1]]||CATEGORY_MENUS["Biryani"];
+  const top=menu.slice(0,2);        // the sketch's "only 2 top-selling"
+  screen.innerHTML=`
+  <div class="topbar"><span onclick="nav('restolist')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">${r[0]}</div>${avatar()}</div>
+  <div style="height:150px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:44px" class="dishframe">
+    <span class="pulse">${r[2]}</span><span class="orbit">✨</span><span class="orbit" style="animation-delay:-3s">🔥</span>
+  </div>
+  <div style="padding:16px 18px;border-bottom:8px solid var(--field)">
+    <div style="font-size:20px;font-weight:800">${r[0]}</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${r[1]} · 8.2 km</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:8px">⏱ ${r[4]} · ₹300 for two · ★ ${r[3]}</div>
+    <div class="marquee" style="margin-top:8px;color:var(--red);font-size:11.5px"><b>🔥 3 people ordering right now · ⭐ Bestseller in Colaba · 🚚 Fast delivery · 🎉 New on Zesto · </b></div>
+  </div>
+  <div style="padding:16px 18px 8px">
+    <div style="font-size:14px;font-weight:800">Top-selling</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">Only 2 shown here. Full menu below.</div>
+    ${top.map(d=>dishRow(d,true)).join("")}
+  </div>
+  <div style="padding:6px 18px 110px">
+    <div style="font-size:14px;font-weight:800;margin-top:6px">Full menu · ${menu.length} items</div>
+    ${menu.map(d=>dishRow(d,false)).join("")}
+  </div>`;
+}
+// one menu row; resolves to a hero MENU entry if the real dish matches, else builds an ad-hoc detail item
+function dishRow(d, isTop){
+  const heroIdx = MENU.findIndex(m=>m.real.toLowerCase()===d[3].toLowerCase() || m.code===d[0]);
+  const handler = heroIdx>=0
+    ? `M.activeDish=${heroIdx};M.activeMenu=null;nav('dish')`
+    : `M.activeMenu={code:${JSON.stringify(d[0])},price:${d[1]},emoji:${JSON.stringify(d[2])},real:${JSON.stringify(d[3])}};nav('dish')`;
+  return `<div class="cardbox" onclick="${handler}" style="margin-top:12px;padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer">
+    ${orbitTile(d[2],56)}
+    <div style="flex:1">
+      <div style="font-size:15px;font-weight:700">${d[0]} ${isTop?`<span class="pill blink" style="background:var(--red-soft);color:var(--red);font-size:10px;margin-left:4px">TOP SELLER</span>`:""}</div>
+      <div style="font-size:14px;font-weight:700;margin-top:4px">${money(d[1])}</div>
+    </div><span style="color:var(--sub)">›</span>
+  </div>`;
+}
+
+// ---------------- DISH (origin -> poppy fun facts -> ingredients) ----------------
+function dish(){
+  let d;
+  if(M.activeMenu){
+    const a=M.activeMenu;
+    d={code:a.code,price:a.price,emoji:a.emoji,real:a.real,
+       origin:"A beloved dish from across the Indian subcontinent",
+       facts:`Ah, ${a.real}. A dish with more history than this app cares to verify, passed down through generations of cooks who each insisted their version was the definitive one. It has been argued over at dinner tables, defended in comment sections, and ordered at 1am with zero regret. Somewhere, a grandmother is judging how it's being made right now.`,
+       ingredients:["Chef's spices","Fresh produce","A pinch of drama","Served hot"]};
+  } else {
+    d=MENU[M.activeDish]||MENU[0];
+  }
+  screen.innerHTML=`
+  <div class="topbar"><span onclick="nav('restaurant')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">${d.code}</div>${avatar()}</div>
+  <div class="screen" style="padding:0">
+    <div style="height:180px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:56px" class="dishframe">
+      <span class="pulse">${d.emoji}</span>
+      <span class="orbit" style="animation-duration:5s">✨</span>
+      <span class="orbit" style="animation-duration:6s;animation-delay:-2s">🔥</span>
+      <span class="orbit" style="animation-duration:8s;animation-delay:-4s">😋</span>
+    </div>
+
+    <div style="padding:12px 18px 4px;display:flex;gap:8px;overflow-x:auto">
+      ${["Spice level","Portion","Add-ons","Rice type","Gravy","Toppings","Cutlery","Packaging"].map(f=>`<span class="filtchip">${f} ▾</span>`).join("")}
+    </div>
+
+    <div style="padding:10px 18px 4px">
+      <div style="font-size:18px;font-weight:800">${d.code}</div>
+      <div style="font-size:14px;font-weight:700;margin-top:4px">${money(d.price)}</div>
+
+      <!-- ORIGIN -->
+      <div style="margin-top:14px;font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--sub)">ORIGIN</div>
+      <div style="font-size:13.5px;margin-top:4px">${d.origin}</div>
+
+      <!-- FUN FACTS in poppy yellow, a whole paragraph -->
+      <div style="margin-top:14px;background:var(--poppy-bg);border:1px solid #f2e08a;border-radius:14px;padding:14px">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:#8a6d00">☀️ FUN FACTS</div>
+        <div style="font-size:13.5px;line-height:1.65;color:#5c4a00;margin-top:6px">${d.facts}</div>
+      </div>
+
+      <!-- INGREDIENTS come AFTER the story -->
+      <div style="margin-top:16px;font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--sub)">WHAT'S ACTUALLY IN IT</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        ${d.ingredients.map(x=>`<span class="pill">${x}</span>`).join("")}
+      </div>
+    </div>
+
+    <div style="padding:14px 18px 4px">
+      <div style="font-size:13px;font-weight:800">Popular right now</div>
+      <div class="flamerow" style="display:flex;gap:10px;overflow-x:auto;margin-top:8px">
+        ${["Ordered 42× today","Trending in Colaba","Chef's special","Almost sold out"].map(t=>`<div class="cardbox" style="flex:none;width:150px;padding:12px;font-size:12px">${t} <span>🔥</span></div>`).join("")}
+      </div>
+    </div>
+
+    <div style="padding:12px 18px 120px">
+      <div style="font-size:13px;font-weight:800">Because you searched — local picks</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;margin-top:8px">
+        ${MENU.slice(0,4).map(x=>`<div class="cardbox" style="flex:none;width:130px">${orbitTile(x.emoji,130).replace('width:130px;height:130px','width:130px;height:80px').replace(/font-size:5\dpx/,'font-size:26px')}<div style="padding:8px;font-size:12px">${x.code}</div></div>`).join("")}
+      </div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="openAddSheet()">Add to cart</button>
+  </div>`;
+}
+function currentDish(){
+  if(M.activeMenu){const a=M.activeMenu;return {code:a.code,price:a.price,emoji:a.emoji};}
+  return MENU[M.activeDish]||MENU[0];
+}
+function openAddSheet(){
+  tap();const d=currentDish();
+  showSheet(`<div class="sheet-pad">
+    <div style="font-size:16px;font-weight:800">Add “${d.code}”</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Which meal is this for?</div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      ${["Lunch","Dinner","Later"].map(m=>`<button class="pill" style="flex:1;padding:12px 0" onclick="addStep2()">${m}</button>`).join("")}
+    </div></div>`);
+}
+function addStep2(){
+  tap();const d=currentDish();
+  showSheet(`<div class="sheet-pad">
+    <div style="font-size:16px;font-weight:800">Confirm quantity</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px">
+      <span style="font-size:14px">${d.code}</span>
+      <div style="display:flex;align-items:center;gap:26px">
+        <button style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--sub)">–</button>
+        <span style="font-weight:700">1</span>
+        <button style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--red)">+</button>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:20px" onclick="addStep3()">Confirm quantity: 1</button></div>`);
+}
+function addStep3(){
+  tap();
+  showSheet(`<div class="sheet-pad" style="text-align:center">
+    <div style="font-size:34px" class="bob">✅</div>
+    <div style="font-size:16px;font-weight:800;margin-top:8px">Added to cart</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Would you like to add another item?</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-outline" onclick="finishAdd(true)">Add more</button>
+      <button class="btn" onclick="finishAdd(false)">Go to cart</button>
+    </div></div>`);
+}
+function finishAdd(more){
+  tap();const d=currentDish();
+  const ex=M.cart.find(i=>i.name===d.code);
+  if(ex)ex.qty++; else M.cart.push({name:d.code,price:d.price,qty:1});
+  closeSheet();
+  if(more){M.page="dish";render();} else {M.page="cart";render();}
+}
+
+// ---------------- CART ----------------
+function cart(){
+  screen.innerHTML=`
+  <div class="topbar"><span onclick="nav('dish')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Your cart</div>${avatar()}</div>
+  <div style="padding:16px 18px 120px">
+    <div class="cardbox" style="padding:6px 14px">
+      ${M.cart.map(i=>`<div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div style="font-size:14px">${i.name} <span class="muted">× ${i.qty}</span></div><div style="font-size:14px;font-weight:600">${money(i.price*i.qty)}</div></div>`).join("")||'<div class="muted" style="padding:16px;text-align:center">Cart empty</div>'}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <input id="promo" class="field" placeholder="Type the code you memorised" oninput="M.memorizedCode=this.value.toUpperCase()" value="${M.memorizedCode}" />
+      <button class="btn" style="width:auto;padding:0 18px;margin:0" onclick="applyCode()">Apply</button>
+    </div>
+    <div id="codemsg" style="font-size:12.5px;margin-top:8px;min-height:16px;color:var(--sub)">${M.codeMsg}</div>
+    <div class="cardbox" style="margin-top:16px;padding:14px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px">Bill summary</div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Item total</span><span>${money(cartSubtotal())}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Delivery fee</span><span>${money(39)}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Taxes & charges</span><span>${money(48)}</span></div>
+      <div style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px" class="row"><span style="font-weight:800">To pay</span><span style="font-weight:800">${money(cartSubtotal()+87)}</span></div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="nav('debrief')">Place order</button>
+  </div>`;
+}
+function applyCode(){
+  tap();const msg=document.getElementById("codemsg");const c=(M.memorizedCode||"").trim();
+  if(!c){toast("Enter the code you memorised earlier.");return;}
+  msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Checking…`;
+  setTimeout(()=>{
+    if(c==="ZESTO60"||c==="FREEDEL399"||c==="BINGE250"){msg.style.color="var(--green)";msg.textContent="Code accepted! …but minimum order not met — no discount applied.";}
+    else{msg.style.color="var(--red)";msg.textContent="That code isn't valid. Did you remember it correctly?";}
+  },1200);
+}
+
+// ---------------- PROFILE ----------------
+function profile(){
+  const a=M.user.addr;const full=[a.a,a.b,a.c,a.d].filter(x=>x).join(", ")||"No address added yet";
+  screen.innerHTML=`
+  <div class="topbar"><span onclick="nav(M.cart.length?'cart':'address')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Your account</div><span style="width:20px"></span></div>
+  <div style="padding:20px 18px 8px;display:flex;align-items:center;gap:14px">
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--red-soft);border:2px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:24px">👤</div>
+    <div><div style="font-size:17px;font-weight:800">${M.user.name||"Guest user"}</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:2px">${M.user.cc} ${M.user.phone||"number not added"}</div></div>
+  </div>
+  <div style="padding:16px 18px 4px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">SAVED ADDRESSES</div>
+    <div class="cardbox" style="margin-top:8px;padding:14px">
+      <div class="row"><div style="font-size:14px;font-weight:700">🏠 Home</div><span class="pill" style="background:var(--amber);color:#fff">Re-verify to use</span></div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">${full}</div>
+    </div>
+    <div style="font-size:11.5px;color:var(--sub);margin-top:6px">This is the address you entered. You'll still be asked to confirm it again.</div>
+  </div>
+  <div style="padding:18px 18px 4px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">PAST ORDERS</div>
+    <div class="cardbox" style="margin-top:8px">
+      ${M.pastOrders.map((o,i)=>`<div style="padding:13px 14px;${i<M.pastOrders.length-1?'border-bottom:1px solid var(--line)':''}">
+        <div class="row"><div style="font-size:14px;font-weight:700">${o[0]}</div><div style="font-size:13px;font-weight:600">${o[2]}</div></div>
+        <div class="row" style="margin-top:3px"><div style="font-size:12.5px;color:var(--sub)">${o[1]}</div><div style="font-size:11.5px;color:var(--sub)">${o[3]}</div></div>
+        <button onclick="toast('Reorder unavailable — please add items again from the menu.')" class="btn-outline" style="margin-top:9px;border-radius:9px;padding:7px 16px;font-size:12.5px;font-weight:700;width:auto">Reorder</button>
+      </div>`).join("")}
+    </div>
+  </div>
+  <div style="padding:18px 18px 4px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">SAVED PAYMENT METHODS</div>
+    <div class="cardbox" style="margin-top:8px;padding:14px" class="row"><div style="font-size:14px">💳 Card ending 4242</div><span class="pill" style="background:var(--field);color:var(--sub)">Expired</span></div>
+  </div>
+  <div style="padding:18px 18px 30px">
+    ${["Favourites","Notifications","Help & support","Log out"].map(x=>`<div onclick="toast('Not available in this demo.')" class="row" style="padding:15px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer">${x}<span style="color:var(--sub)">›</span></div>`).join("")}
+  </div>`;
+}
+
+// ---------------- COUNTRY CODE PICKER ----------------
+const COUNTRIES=[
+  ["🇻🇦","+379","Vatican City"],["🇹🇻","+688","Tuvalu"],["🇳🇷","+674","Nauru"],["🇰🇮","+686","Kiribati"],
+  ["🇼🇸","+685","Samoa"],["🇹🇴","+676","Tonga"],["🇫🇯","+679","Fiji"],["🇵🇼","+680","Palau"],
+  ["🇫🇲","+691","Micronesia"],["🇲🇭","+692","Marshall Islands"],["🇸🇧","+677","Solomon Islands"],["🇻🇺","+678","Vanuatu"],
+  ["🇬🇱","+299","Greenland"],["🇫🇴","+298","Faroe Islands"],["🇦🇩","+376","Andorra"],["🇲🇨","+377","Monaco"],
+  ["🇱🇮","+423","Liechtenstein"],["🇸🇲","+378","San Marino"],["🇬🇮","+350","Gibraltar"],["🇲🇹","+356","Malta"],
+  ["🇨🇾","+357","Cyprus"],["🇮🇸","+354","Iceland"],["🇱🇺","+352","Luxembourg"],["🇪🇪","+372","Estonia"],
+  ["🇱🇻","+371","Latvia"],["🇱🇹","+370","Lithuania"],["🇲🇩","+373","Moldova"],["🇦🇲","+374","Armenia"],
+  ["🇧🇾","+375","Belarus"],["🇬🇪","+995","Georgia"],["🇦🇿","+994","Azerbaijan"],["🇰🇿","+7","Kazakhstan"],
+  ["🇲🇳","+976","Mongolia"],["🇧🇹","+975","Bhutan"],["🇲🇻","+960","Maldives"],["🇳🇵","+977","Nepal"],
+  ["🇱🇰","+94","Sri Lanka"],["🇧🇩","+880","Bangladesh"],["🇵🇰","+92","Pakistan"],["🇦🇫","+93","Afghanistan"],
+  ["🇲🇲","+95","Myanmar"],["🇰🇭","+855","Cambodia"],["🇱🇦","+856","Laos"],["🇧🇳","+673","Brunei"],
+  ["🇹🇱","+670","Timor-Leste"],["🇵🇬","+675","Papua New Guinea"],["🇳🇨","+687","New Caledonia"],["🇵🇫","+689","French Polynesia"],
+  ["🇧🇧","+1246","Barbados"],["🇯🇲","+1876","Jamaica"],["🇹🇹","+1868","Trinidad & Tobago"],["🇧🇸","+1242","Bahamas"],
+  ["🇧🇿","+501","Belize"],["🇬🇹","+502","Guatemala"],["🇸🇻","+503","El Salvador"],["🇭🇳","+504","Honduras"],
+  ["🇳🇮","+505","Nicaragua"],["🇨🇷","+506","Costa Rica"],["🇵🇦","+507","Panama"],["🇵🇪","+51","Peru"],
+  ["🇪🇨","+593","Ecuador"],["🇧🇴","+591","Bolivia"],["🇵🇾","+595","Paraguay"],["🇺🇾","+598","Uruguay"],
+  ["🇬🇾","+592","Guyana"],["🇻🇪","+58","Venezuela"],["🇨🇴","+57","Colombia"],["🇨🇱","+56","Chile"],
+  ["🇦🇷","+54","Argentina"],["🇧🇷","+55","Brazil"],["🇲🇽","+52","Mexico"],["🇨🇺","+53","Cuba"],
+  ["🇩🇿","+213","Algeria"],["🇹🇳","+216","Tunisia"],["🇱🇾","+218","Libya"],["🇪🇬","+20","Egypt"],
+  ["🇲🇦","+212","Morocco"],["🇸🇩","+249","Sudan"],["🇪🇹","+251","Ethiopia"],["🇰🇪","+254","Kenya"],
+  ["🇹🇿","+255","Tanzania"],["🇺🇬","+256","Uganda"],["🇳🇬","+234","Nigeria"],["🇬🇭","+233","Ghana"],
+  ["🇿🇦","+27","South Africa"],["🇿🇼","+263","Zimbabwe"],["🇿🇲","+260","Zambia"],["🇲🇿","+258","Mozambique"],
+  ["🇦🇴","+244","Angola"],["🇨🇲","+237","Cameroon"],["🇸🇳","+221","Senegal"],["🇨🇮","+225","Côte d'Ivoire"],
+  ["🇸🇦","+966","Saudi Arabia"],["🇦🇪","+971","UAE"],["🇶🇦","+974","Qatar"],["🇰🇼","+965","Kuwait"],
+  ["🇧🇭","+973","Bahrain"],["🇴🇲","+968","Oman"],["🇾🇪","+967","Yemen"],["🇯🇴","+962","Jordan"],
+  ["🇱🇧","+961","Lebanon"],["🇸🇾","+963","Syria"],["🇮🇶","+964","Iraq"],["🇮🇷","+98","Iran"],
+  ["🇮🇱","+972","Israel"],["🇹🇷","+90","Turkey"],["🇬🇷","+30","Greece"],["🇵🇹","+351","Portugal"],
+  ["🇪🇸","+34","Spain"],["🇫🇷","+33","France"],["🇮🇹","+39","Italy"],["🇩🇪","+49","Germany"],
+  ["🇳🇱","+31","Netherlands"],["🇧🇪","+32","Belgium"],["🇨🇭","+41","Switzerland"],["🇦🇹","+43","Austria"],
+  ["🇸🇪","+46","Sweden"],["🇳🇴","+47","Norway"],["🇩🇰","+45","Denmark"],["🇫🇮","+358","Finland"],
+  ["🇵🇱","+48","Poland"],["🇨🇿","+420","Czechia"],["🇸🇰","+421","Slovakia"],["🇭🇺","+36","Hungary"],
+  ["🇷🇴","+40","Romania"],["🇧🇬","+359","Bulgaria"],["🇷🇸","+381","Serbia"],["🇭🇷","+385","Croatia"],
+  ["🇺🇦","+380","Ukraine"],["🇷🇺","+7","Russia"],["🇬🇧","+44","United Kingdom"],["🇮🇪","+353","Ireland"],
+  ["🇨🇳","+86","China"],["🇯🇵","+81","Japan"],["🇰🇷","+82","South Korea"],["🇹🇼","+886","Taiwan"],
+  ["🇭🇰","+852","Hong Kong"],["🇲🇴","+853","Macau"],["🇸🇬","+65","Singapore"],["🇲🇾","+60","Malaysia"],
+  ["🇹🇭","+66","Thailand"],["🇻🇳","+84","Vietnam"],["🇮🇩","+62","Indonesia"],["🇵🇭","+63","Philippines"],
+  ["🇦🇺","+61","Australia"],["🇳🇿","+64","New Zealand"],["🇺🇸","+1","United States"],["🇨🇦","+1","Canada"],
+  ["🇮🇳","+91","India"],
+  ["🇧🇼","+267","Botswana"],["🇳🇦","+264","Namibia"],["🇲🇼","+265","Malawi"],["🇷🇼","+250","Rwanda"],
+];
+function openCC(){
+  const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";scrim.onclick=closeSheet;
+  const sheet=document.createElement("div");sheet.className="sheet";sheet.id="sheet";
+  sheet.innerHTML=`<div style="padding:18px 20px 10px">
+      <div style="width:38px;height:4px;background:#e2e2e6;border-radius:3px;margin:0 auto 14px"></div>
+      <div style="font-size:16px;font-weight:800">Select country code</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:4px">Scroll to find your country.</div></div>
+    <div style="overflow-y:auto;flex:1;padding:0 8px 14px">
+      ${COUNTRIES.map((c,i)=>`<div onclick="pickCC(${i})" class="row" style="padding:13px 12px;border-bottom:1px solid var(--line);cursor:pointer">
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px"><span style="font-size:18px">${c[0]}</span><span>${c[2]}</span></div>
+        <div style="color:var(--sub);font-size:13.5px">${c[1]}</div></div>`).join("")}</div>`;
+  document.getElementById("phone").appendChild(scrim);document.getElementById("phone").appendChild(sheet);
+}
+function pickCC(i){const c=COUNTRIES[i];M.user.cc=c[1];M.user.flag=c[0];tap();closeSheet();render();toast(`Country set to ${c[2]} (${c[1]})`);}
+
+// ---------------- DEBRIEF ----------------
+function debrief(){
+  const secs=M.startTime?Math.round((Date.now()-M.startTime)/1000):0;const mm=Math.floor(secs/60),ss=secs%60;
+  const steps=[
+    ["Getting into the app","A splash that loaded twice, showing nothing","Open straight to the food"],
+    ["Adding your address first","Forced manual entry, 6-char rule, defaulted to Vatican and refused to move until you found India in an unsorted list","Detect location, remember it, let you skip"],
+    ["Finding food (list)","Search was hidden until you tapped in; offer codes had to be memorised by eye","A visible search and one-tap coupons"],
+    ["Searching","It broke on the first try (an honest 'Oops'), worked on the second — but the result had a cryptic name and pushed 20+ options","Work first time; show clear matches"],
+    ["The menu names","Dishes were named 'The Long Grain Situation', 'Buttery Betrayal'… giving no clue what they were","Call food what it is"],
+    ["The dish page","Buried the essentials under a history essay, fun facts and 'popular' nudges before the ingredients","Lead with what it is and one clear Add"],
+    ["Adding one item","Three taps: which meal, confirm quantity, add-more","One tap; adjust in the cart"],
+    ["The coupon","The memorised code applied — then didn't qualify anyway","Only show codes that work here"],
+    ["The profile","Address, past orders and card all saved — none of it usable","Reuse saved data to save effort"],
+  ];
+  screen.innerHTML=`
+  <div style="padding:30px 22px 40px" class="fadein">
+    <div style="text-align:center">
+      <div style="width:58px;height:58px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto">✓</div>
+      <div style="font-size:21px;font-weight:800;margin-top:14px">You got your biryani.</div>
+      <div style="font-size:13.5px;color:var(--sub);margin-top:8px;line-height:1.5">It worked — after <b>${M.taps} taps</b>${secs?` and about <b>${mm}m ${ss}s</b>`:''}. Every screen was trying to help. None of them respected your time.</div>
+    </div>
+    <div style="margin-top:28px;border-top:1px solid var(--line);padding-top:22px"><div style="font-size:12px;font-weight:800;letter-spacing:.6px">WHAT IT DID vs. THE SHORTEST PATH</div></div>
+    ${steps.map(s=>`<div style="margin-top:16px">
+      <div style="font-size:13.5px;font-weight:700">${s[0]}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.45"><span style="color:var(--red)">What happened:</span> ${s[1]}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:2px;line-height:1.45"><span style="color:var(--green)">Shortest path:</span> ${s[2]}</div>
+    </div>`).join("")}
+    <div style="margin-top:32px;text-align:center">
+      <svg viewBox="0 0 260 260" width="220" height="220" style="max-width:80%">
+        <circle cx="130" cy="130" r="120" fill="none" stroke="#f3c8ce" stroke-width="1.5"/>
+        <circle cx="130" cy="130" r="88" fill="none" stroke="#eaa3ad" stroke-width="1.5"/>
+        <circle cx="130" cy="130" r="56" fill="var(--red)" opacity="0.08"/>
+        <circle cx="130" cy="130" r="56" fill="none" stroke="var(--red)" stroke-width="2"/>
+        <text x="130" y="126" text-anchor="middle" font-size="13" font-weight="800" fill="#171719">Customer</text>
+        <text x="130" y="143" text-anchor="middle" font-size="13" font-weight="800" fill="#171719">experience</text>
+        <text x="130" y="60" text-anchor="middle" font-size="11" fill="#71717a">decisions</text>
+        <text x="130" y="34" text-anchor="middle" font-size="11" fill="#71717a">ideas · feedback</text>
+      </svg>
+    </div>
+    <div style="margin-top:8px;background:var(--red-soft);border-radius:16px;padding:18px">
+      <div style="font-size:14px;line-height:1.6;color:#7a1523">Customer experience is the core. Our ideas, the feedback we take, and the decisions we make all orbit it — and only matter if they make that core better. We can change almost anything, as long as the experience stays at the centre. Effort that doesn't serve it isn't a feature. It's just waste in a nicer wrapper.</div>
+    </div>
+    <button onclick="restart()" style="width:100%;margin-top:20px;background:var(--ink);color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600">Run it again</button>
+  </div>`;
+}
+function restart(){
+  M.page="splash";M.taps=0;M.startTime=null;M.cart=[];M.memorizedCode="";M.codeMsg="";M.listSearchShown=false;M.activeDish=0;M.activeResto=0;M.activeMenu=null;searchAttempt=0;
+  M.user={name:"",phone:"",cc:"+379",flag:"🇻🇦",addr:{a:"",b:"",c:"",d:""}};
+  render();
+}
+
+// ---------------- SHEETS + RENDER ----------------
+function showSheet(inner){closeSheet();const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";scrim.onclick=closeSheet;const sheet=document.createElement("div");sheet.className="sheet";sheet.id="sheet";sheet.innerHTML=inner;document.getElementById("phone").appendChild(scrim);document.getElementById("phone").appendChild(sheet);}
+function closeSheet(){["scrim","sheet"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});}
+function render(){
+  closeSheet();const p=M.page;
+  if(p==="splash")return splash();
+  if(p==="address")return address();
+  if(p==="list")return list();
+  if(p==="search")return search();
+  if(p==="restolist")return restolist();
+  if(p==="restaurant")return restaurant();
+  if(p==="dish")return dish();
+  if(p==="cart")return cart();
+  if(p==="profile")return profile();
+  if(p==="debrief")return debrief();
+}
+render();
+</script>
+</body>
+</html>
