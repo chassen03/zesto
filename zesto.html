@@ -1,0 +1,596 @@
+
+
+Index · HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#d6273f" />
+<title>Zesto — Food, delivered</title>
+<style>
+  :root{
+    --red:#d6273f;--red-deep:#b01e33;--red-soft:#fff0f2;--red-tint:#fde8eb;
+    --ink:#171719;--sub:#71717a;--line:#eeeef1;--field:#f5f5f7;
+    --green:#12924a;--amber:#e8a13a;--card:#fff;
+    --shadow:0 6px 24px rgba(0,0,0,.08);--shadow-lg:0 14px 40px rgba(0,0,0,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%}
+  body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:#0c0c0e;color:var(--ink);display:flex;justify-content:center}
+  #phone{width:100%;max-width:430px;background:#fff;min-height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  @media(min-width:600px){body{align-items:center;padding:16px}#phone{height:900px;min-height:0;border-radius:38px;box-shadow:var(--shadow-lg);border:10px solid #0c0c0e}}
+  .screen{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .screen::-webkit-scrollbar{display:none}
+  button{font-family:inherit;border:none;cursor:pointer}
+  .btn{width:100%;background:var(--red);color:#fff;border-radius:14px;padding:16px;font-size:15px;font-weight:600;letter-spacing:.2px;box-shadow:0 6px 18px rgba(214,39,63,.28)}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#eab8c0;box-shadow:none}
+  .btn-ghost{background:transparent;color:var(--sub);font-size:12.5px;font-weight:500;padding:8px}
+  .btn-outline{background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none}
+  .field{width:100%;background:var(--field);border:1px solid transparent;border-radius:12px;padding:14px 15px;font-size:15px}
+  .field:focus{outline:none;border-color:var(--red);background:#fff}
+  .pill{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--field);color:var(--sub)}
+  .row{display:flex;align-items:center;justify-content:space-between}
+  .muted{color:var(--sub)}
+  .topbar{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:10}
+  .cardbox{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--red-soft);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:1.5px solid var(--red)}
+  .cart-bar{position:sticky;bottom:0;background:var(--red);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 -6px 20px rgba(214,39,63,.24);cursor:pointer}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.18);z-index:50;animation:up .28s cubic-bezier(.2,.8,.2,1);max-height:80%;display:flex;flex-direction:column}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet-pad{padding:22px 20px 26px}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:40;animation:fade .2s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:#1f1f22;color:#fff;font-size:12.5px;padding:12px 16px;border-radius:12px;z-index:120;max-width:88%;text-align:center;line-height:1.4;box-shadow:var(--shadow-lg)}
+  .spin{width:26px;height:26px;border:3px solid var(--red-tint);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite;display:inline-block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .fadein{animation:fi .4s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .strike{position:relative;opacity:.5}
+  .strike:after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--sub);transform:rotate(-4deg)}
+  .filtchip{flex:none;padding:8px 14px;border-radius:20px;background:var(--field);font-size:12.5px;color:var(--sub);white-space:nowrap}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="phone"><div class="screen" id="screen"></div></div>
+<script>
+const screen = document.getElementById("screen");
+ 
+// ---------------- STATE ----------------
+const M = {
+  page:"splash", taps:0, startTime:null,
+  // profile / entered data
+  user:{ name:"", phone:"", cc:"+91", flag:"🇮🇳",
+    addr:{a:"",b:"",c:"",d:""} },
+  cart:[],
+  memorizedCode:"", codeMsg:"",
+  searchStage:0,
+  pastOrders:[
+    ["Spice Route","Chicken Biryani × 1","₹336","2 days ago"],
+    ["Bella Napoli","Margherita Pizza × 2","₹710","last week"],
+    ["Wok & Roll","Veg Hakka Noodles","₹289","3 weeks ago"],
+  ],
+};
+function tap(){ M.taps++; }
+function nav(p){ tap(); M.page=p; try{screen.scrollTo(0,0)}catch(e){} render(); }
+function toast(msg,ms=2500){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.getElementById("phone").appendChild(t);setTimeout(()=>t.remove(),ms);}
+function money(n){return "₹"+n;}
+function cartCount(){return M.cart.reduce((s,i)=>s+i.qty,0);}
+function cartSubtotal(){return M.cart.reduce((s,i)=>s+i.price*i.qty,0);}
+ 
+// top-right avatar (goes to profile)
+function avatar(){ return `<div class="avatar" onclick="nav('profile')">👤</div>`; }
+ 
+// ---------------- SPLASH ----------------
+function splash(){
+  screen.innerHTML=`
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--red),var(--red-deep));color:#fff">
+    <div class="fadein" style="text-align:center">
+      <div style="font-size:15px;letter-spacing:6px;opacity:.85;font-weight:600">ZESTO</div>
+      <div style="font-size:40px;margin-top:8px">🍜</div>
+      <div style="margin-top:26px;width:200px;height:6px;background:rgba(255,255,255,.25);border-radius:6px;overflow:hidden">
+        <div id="bar" style="height:100%;width:0;background:#fff;border-radius:6px;transition:width .4s"></div>
+      </div>
+      <div id="loadtxt" style="font-size:12px;margin-top:14px;opacity:.85">Preparing your experience…</div>
+    </div>
+  </div>`;
+  const bar=document.getElementById("bar"),txt=document.getElementById("loadtxt");
+  const seq=[20,48,76,100,0,34,68,100];let i=0;
+  const tick=()=>{
+    if(i>=seq.length){ M.startTime=Date.now(); nav("address"); return; }
+    const p=seq[i]; bar.style.width=p+"%";
+    if(p===100&&i<4)txt.textContent="Almost there…";
+    else if(p===0)txt.textContent="Just a moment, optimising…";
+    else if(i>=5)txt.textContent="Finalising the finishing touches…";
+    i++; setTimeout(tick,p===0?520:640);
+  };
+  setTimeout(tick,500);
+}
+ 
+// ---------------- PAGE I: ADDRESS (first thing) ----------------
+function address(){
+  const a=M.user.addr;
+  screen.innerHTML=`
+  <div class="topbar">
+    <div style="font-weight:800;font-size:16px">Add delivery details</div>
+    ${avatar()}
+  </div>
+  <div style="padding:16px 18px 8px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);margin:0">
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a1523;font-weight:600">📍 We found you near Delhi-Gurgaon border.</div>
+  </div>
+  <div style="padding:16px 18px 40px">
+    <div style="font-size:18px;font-weight:800">Where should we deliver?</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">We've located you — now please add your full address. Each field needs at least 6 characters.</div>
+ 
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.4px;margin:18px 0 8px">MOBILE NUMBER</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="openCC()" style="flex:none;background:var(--field);border-radius:12px;padding:14px 12px;font-size:15px;display:flex;align-items:center;gap:6px">
+        <span>${M.user.flag}</span><span>${M.user.cc}</span><span style="color:var(--sub);font-size:12px">▾</span>
+      </button>
+      <input class="field" placeholder="Mobile number" inputmode="numeric" value="${M.user.phone}" oninput="M.user.phone=this.value.replace(/\\D/g,'').slice(0,10)" />
+    </div>
+ 
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.4px;margin:20px 0 8px">ADDRESS</div>
+    <input id="fa" class="field" style="margin-bottom:10px" placeholder="a. Flat / House no. (min 6 chars)" value="${a.a}" oninput="M.user.addr.a=this.value" />
+    <input id="fb" class="field" style="margin-bottom:10px" placeholder="b. Building / Street (min 6 chars)" value="${a.b}" oninput="M.user.addr.b=this.value" />
+    <input id="fc" class="field" style="margin-bottom:10px" placeholder="c. Area / Landmark (min 6 chars)" value="${a.c}" oninput="M.user.addr.c=this.value" />
+    <input id="fd" class="field" placeholder="d. PIN code (6 digits)" inputmode="numeric" value="${a.d}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6);M.user.addr.d=this.value" />
+ 
+    <button class="btn" style="margin-top:22px" onclick="saveAddress()">Save & see restaurants</button>
+  </div>`;
+}
+function saveAddress(){
+  tap();
+  const a=M.user.addr;
+  if((a.a||"").length<6){toast("Field a needs at least 6 characters.");return;}
+  if((a.b||"").length<6){toast("Field b needs at least 6 characters.");return;}
+  if((a.c||"").length<6){toast("Field c needs at least 6 characters.");return;}
+  if((a.d||"").length!==6){toast("Please enter a valid 6-digit PIN code.");return;}
+  nav("list");
+}
+ 
+// ---------------- PAGE II: LIST, NO SEARCH ----------------
+function list(){
+  screen.innerHTML=`
+  <div class="topbar">
+    <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px" class="strike" onclick="toast('Search is not available on this page.')">
+      <span>🔍</span><span style="color:var(--sub);font-size:14px">Search</span>
+    </div>
+    <div style="margin-left:12px">${avatar()}</div>
+  </div>
+ 
+  <div style="padding:16px 18px 100px">
+    <div style="font-size:15px;font-weight:800">Browse</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">Scroll to find what you want — there's no search here.</div>
+ 
+    <div class="cardbox" style="margin-top:14px">
+      ${["🍛 Options","🍽️ Restaurants","🎟️ Codes & offers"].map((x,i)=>`<div class="row" onclick="${i===2?'openCodes()':`nav('search')`}" style="padding:16px 14px;${i<2?'border-bottom:1px solid var(--line)':''};cursor:pointer">
+        <div style="font-size:15px;font-weight:600">${x}</div><span style="color:var(--sub)">›</span></div>`).join("")}
+    </div>
+ 
+    <div style="margin-top:22px;font-size:14px;font-weight:800">Today's offers</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">Note the codes down — you'll need to type them yourself later.</div>
+    ${[["ZESTO60","60% off up to ₹120"],["FREEDEL399","Free delivery over ₹399"],["BINGE250","Flat ₹250 off over ₹899"]].map(c=>`
+      <div class="cardbox" style="margin-top:10px;padding:14px" class="row">
+        <div class="row">
+          <div>
+            <div style="font-size:15px;font-weight:800;letter-spacing:.5px">${c[0]}</div>
+            <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${c[1]}</div>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:8px"><span style="font-size:11px;color:var(--amber);font-weight:600">no copy button — memorise it</span></div>
+      </div>`).join("")}
+ 
+    <button class="btn" style="margin-top:22px" onclick="nav('search')">Continue to find food</button>
+  </div>`;
+}
+function openCodes(){
+  showSheet(`<div class="sheet-pad">
+    <div style="font-size:16px;font-weight:800">Offer codes</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:6px">Please remember these. They can only be entered manually at the cart.</div>
+    ${["ZESTO60","FREEDEL399","BINGE250"].map(c=>`<div style="margin-top:12px;font-size:16px;font-weight:800;letter-spacing:1px">${c}</div>`).join("")}
+    <button class="btn" style="margin-top:20px" onclick="closeSheet()">Got it (I'll remember)</button>
+  </div>`);
+}
+ 
+// ---------------- PAGE III: SEARCH THAT STILL FAILS ----------------
+function search(){
+  const opts=Array.from({length:20},(_,i)=>i+1);
+  screen.innerHTML=`
+  <div class="topbar">
+    <span onclick="nav('list')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="flex:1;margin:0 10px;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px">
+      <span>🔍</span><input id="sq" class="field" style="padding:0;background:transparent;font-size:14px" placeholder="Search dishes… (try it)" />
+    </div>
+    ${avatar()}
+  </div>
+ 
+  <div style="padding:14px 18px 4px">
+    <button class="btn" onclick="tryFailSearch()">Search</button>
+    <div id="smsg" style="font-size:12.5px;color:var(--sub);margin-top:10px;min-height:16px"></div>
+  </div>
+ 
+  <div style="padding:8px 18px 4px;display:flex;gap:8px;overflow-x:auto">
+    ${["Filters","Pure Veg","Rating 4.0+","Offers","Fast delivery","Price","Cuisines","Sort"].map(f=>`<span class="filtchip" onclick="toast('Filter applied. Still ${opts.length} options.')">${f}</span>`).join("")}
+  </div>
+ 
+  <div style="padding:10px 18px 100px">
+    <div class="row"><div style="font-size:14px;font-weight:800">${opts.length} options</div>
+      <div style="font-size:12px;color:var(--sub)">too many to compare</div></div>
+    ${opts.map(n=>`<div onclick="nav('restaurant')" class="cardbox" style="margin-top:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;cursor:pointer">
+      <div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:22px">${["🍛","🍕","🥘","🍜","🥡"][n%5]}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700">Restaurant option ${n}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px">Multi-cuisine · ${25+n%20}–${30+n%20} min</div>
+      </div>
+      <div style="background:var(--green);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px">★ ${(3.8+ (n%12)/10).toFixed(1)}</div>
+    </div>`).join("")}
+  </div>`;
+}
+function tryFailSearch(){
+  tap();
+  const msg=document.getElementById("smsg");
+  msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Searching…`;
+  setTimeout(()=>{
+    M.searchStage++;
+    if(M.searchStage<2){ msg.style.color="var(--red)"; msg.textContent="Search is temporarily unavailable. Please browse the options below."; }
+    else { msg.style.color="var(--sub)"; msg.textContent="Still no results. Try scrolling through all 20 options instead."; }
+  },1400);
+}
+ 
+// ---------------- PAGE III/IV: RESTAURANT ----------------
+function restaurant(){
+  screen.innerHTML=`
+  <div class="topbar">
+    <span onclick="nav('search')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Spice Route</div>
+    ${avatar()}
+  </div>
+  <div style="height:150px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:44px">🍛</div>
+  <div style="padding:16px 18px;border-bottom:8px solid var(--field)">
+    <div style="font-size:20px;font-weight:800">Spice Route</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:3px">North Indian · Biryani · 8.2 km</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:8px">⏱ 30–35 min · ₹300 for two · ★ 4.5</div>
+  </div>
+  <div style="padding:16px 18px 100px">
+    <div style="font-size:14px;font-weight:800">Top-selling</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">Only 2 items shown. Tap one to see details.</div>
+    ${[["Chicken Biryani",249],["Paneer Butter Masala",229]].map((d,i)=>`
+      <div onclick="nav('dish')" class="cardbox" style="margin-top:12px;padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer">
+        <div style="width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:26px">${["🍛","🧆"][i]}</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:700">${d[0]} <span class="pill" style="background:var(--red-soft);color:var(--red);font-size:10px;margin-left:4px">TOP SELLER</span></div>
+          <div style="font-size:14px;font-weight:700;margin-top:4px">${money(d[1])}</div>
+        </div>
+        <span style="color:var(--sub)">›</span>
+      </div>`).join("")}
+  </div>`;
+}
+ 
+// ---------------- LAST PAGE: DISH (buried under everything) ----------------
+function dish(){
+  screen.innerHTML=`
+  <div class="topbar">
+    <span onclick="nav('restaurant')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Chicken Biryani</div>
+    ${avatar()}
+  </div>
+  <div class="screen" style="padding:0">
+    <div style="height:170px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:52px">🍛</div>
+ 
+    <!-- infinite filters -->
+    <div style="padding:12px 18px 4px;display:flex;gap:8px;overflow-x:auto">
+      ${["Spice level","Portion","Add-ons","Rice type","Gravy","Toppings","Cutlery","Packaging","Sides","Sauces"].map(f=>`<span class="filtchip">${f} ▾</span>`).join("")}
+    </div>
+ 
+    <div style="padding:10px 18px 4px">
+      <div style="font-size:18px;font-weight:800">Chicken Biryani</div>
+      <div style="font-size:14px;font-weight:700;margin-top:4px">₹249</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">Aromatic long-grain rice, slow-cooked with tender chicken and house spices.</div>
+    </div>
+ 
+    <!-- infinite offers -->
+    <div style="padding:10px 18px 4px">
+      <div style="font-size:13px;font-weight:800">Offers available (∞)</div>
+      ${["ZESTO60","FREEDEL399","BINGE250","FIRST99","WKND40","LATE30"].map(c=>`<div class="cardbox" style="margin-top:8px;padding:11px 13px" class="row"><div style="font-size:13px;font-weight:700">🎟️ ${c}</div><div style="font-size:11px;color:var(--amber)">memorise to use</div></div>`).join("")}
+    </div>
+ 
+    <!-- top selling / popular nudges -->
+    <div style="padding:12px 18px 4px">
+      <div style="font-size:13px;font-weight:800">Popular right now</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;margin-top:8px">
+        ${["Ordered 42× today","Trending in Colaba","Chef's special","Bestseller","Almost sold out"].map(t=>`<div class="cardbox" style="flex:none;width:150px;padding:12px;font-size:12px">${t} 🔥</div>`).join("")}
+      </div>
+    </div>
+ 
+    <!-- "locally products that we searched for" -->
+    <div style="padding:12px 18px 120px">
+      <div style="font-size:13px;font-weight:800">Because you searched — local picks</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;margin-top:8px">
+        ${["Local biryani #1","Local biryani #2","Local biryani #3","Local biryani #4"].map((t,i)=>`<div class="cardbox" style="flex:none;width:130px"><div style="height:80px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:26px">🍛</div><div style="padding:8px;font-size:12px">${t}</div></div>`).join("")}
+      </div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="openAddSheet()">Add to cart</button>
+  </div>`;
+}
+// Bean-style multi-step add
+function openAddSheet(){
+  tap();
+  showSheet(`<div class="sheet-pad">
+    <div style="font-size:16px;font-weight:800">Add “Chicken Biryani”</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Which meal is this for?</div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      ${["Lunch","Dinner","Later"].map(m=>`<button class="pill" style="flex:1;padding:12px 0" onclick="addStep2()">${m}</button>`).join("")}
+    </div></div>`);
+}
+function addStep2(){
+  tap();
+  showSheet(`<div class="sheet-pad">
+    <div style="font-size:16px;font-weight:800">Confirm quantity</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px">
+      <span style="font-size:14px">Chicken Biryani</span>
+      <div style="display:flex;align-items:center;gap:26px">
+        <button style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--sub)">–</button>
+        <span style="font-weight:700">1</span>
+        <button style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--red)">+</button>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:20px" onclick="addStep3()">Confirm quantity: 1</button></div>`);
+}
+function addStep3(){
+  tap();
+  showSheet(`<div class="sheet-pad" style="text-align:center">
+    <div style="font-size:34px">✅</div>
+    <div style="font-size:16px;font-weight:800;margin-top:8px">Added to cart</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Would you like to add another item?</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-outline" onclick="finishAdd(true)">Add more</button>
+      <button class="btn" onclick="finishAdd(false)">Go to cart</button>
+    </div></div>`);
+}
+function finishAdd(more){
+  tap();
+  const ex=M.cart.find(i=>i.name==="Chicken Biryani");
+  if(ex)ex.qty++; else M.cart.push({name:"Chicken Biryani",price:249,qty:1});
+  closeSheet();
+  if(more){ M.page="dish"; render(); } else { M.page="cart"; render(); }
+}
+ 
+// ---------------- CART ----------------
+function cart(){
+  screen.innerHTML=`
+  <div class="topbar">
+    <span onclick="nav('dish')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Your cart</div>${avatar()}
+  </div>
+  <div style="padding:16px 18px 120px">
+    <div class="cardbox" style="padding:6px 14px">
+      ${M.cart.map(i=>`<div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div style="font-size:14px">${i.name} <span class="muted">× ${i.qty}</span></div><div style="font-size:14px;font-weight:600">${money(i.price*i.qty)}</div></div>`).join("")||'<div class="muted" style="padding:16px;text-align:center">Cart empty</div>'}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <input id="promo" class="field" placeholder="Type the code you memorised" oninput="M.memorizedCode=this.value.toUpperCase()" value="${M.memorizedCode}" />
+      <button class="btn" style="width:auto;padding:0 18px;margin:0" onclick="applyCode()">Apply</button>
+    </div>
+    <div id="codemsg" style="font-size:12.5px;margin-top:8px;min-height:16px;color:var(--sub)">${M.codeMsg}</div>
+ 
+    <div class="cardbox" style="margin-top:16px;padding:14px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px">Bill summary</div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Item total</span><span>${money(cartSubtotal())}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Delivery fee</span><span>${money(39)}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Taxes & charges</span><span>${money(48)}</span></div>
+      <div style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px" class="row"><span style="font-weight:800">To pay</span><span style="font-weight:800">${money(cartSubtotal()+87)}</span></div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="nav('debrief')">Place order</button>
+  </div>`;
+}
+function applyCode(){
+  tap();
+  const msg=document.getElementById("codemsg");
+  const c=(M.memorizedCode||"").trim();
+  if(!c){toast("Enter the code you memorised earlier.");return;}
+  msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Checking…`;
+  setTimeout(()=>{
+    if(c==="ZESTO60"||c==="FREEDEL399"||c==="BINGE250"){
+      msg.style.color="var(--green)"; msg.textContent="Code accepted! ...but minimum order not met — no discount applied.";
+      M.codeMsg="Code valid, but this order doesn't qualify.";
+    }else{
+      msg.style.color="var(--red)"; msg.textContent="That code isn't valid. Did you remember it correctly?";
+      M.codeMsg="Invalid code — please re-check what you memorised.";
+    }
+  },1200);
+}
+ 
+// ---------------- PROFILE ----------------
+function profile(){
+  const a=M.user.addr;
+  const full=[a.a,a.b,a.c,a.d].filter(x=>x).join(", ")||"No address added yet";
+  screen.innerHTML=`
+  <div class="topbar">
+    <span onclick="nav(M.cart.length?'cart':'address')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Your account</div><span style="width:20px"></span>
+  </div>
+ 
+  <div style="padding:20px 18px 8px;display:flex;align-items:center;gap:14px">
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--red-soft);border:2px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:24px">👤</div>
+    <div>
+      <div style="font-size:17px;font-weight:800">${M.user.name||"Guest user"}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:2px">${M.user.cc} ${M.user.phone||"number not added"}</div>
+    </div>
+  </div>
+ 
+  <div style="padding:16px 18px 4px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">SAVED ADDRESSES</div>
+    <div class="cardbox" style="margin-top:8px;padding:14px">
+      <div class="row"><div style="font-size:14px;font-weight:700">🏠 Home</div><span class="pill" style="background:var(--amber);color:#fff">Re-verify to use</span></div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">${full}</div>
+    </div>
+    <div style="font-size:11.5px;color:var(--sub);margin-top:6px">This is the address you entered. You'll still be asked to confirm it again.</div>
+  </div>
+ 
+  <div style="padding:18px 18px 4px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">PAST ORDERS</div>
+    <div class="cardbox" style="margin-top:8px">
+      ${M.pastOrders.map((o,i)=>`<div style="padding:13px 14px;${i<M.pastOrders.length-1?'border-bottom:1px solid var(--line)':''}">
+        <div class="row"><div style="font-size:14px;font-weight:700">${o[0]}</div><div style="font-size:13px;font-weight:600">${o[2]}</div></div>
+        <div class="row" style="margin-top:3px"><div style="font-size:12.5px;color:var(--sub)">${o[1]}</div><div style="font-size:11.5px;color:var(--sub)">${o[3]}</div></div>
+        <button onclick="toast('Reorder unavailable — please add items again from the menu.')" class="btn-outline" style="margin-top:9px;border-radius:9px;padding:7px 16px;font-size:12.5px;font-weight:700;width:auto">Reorder</button>
+      </div>`).join("")}
+    </div>
+  </div>
+ 
+  <div style="padding:18px 18px 4px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">SAVED PAYMENT METHODS</div>
+    <div class="cardbox" style="margin-top:8px;padding:14px" class="row"><div style="font-size:14px">💳 Card ending 4242</div><span class="pill" style="background:var(--field);color:var(--sub)">Expired</span></div>
+  </div>
+ 
+  <div style="padding:18px 18px 30px">
+    ${["Favourites","Notifications","Help & support","Log out"].map(x=>`<div onclick="toast('Not available in this demo.')" class="row" style="padding:15px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer">${x}<span style="color:var(--sub)">›</span></div>`).join("")}
+  </div>`;
+}
+ 
+// ---------------- COUNTRY CODE PICKER ----------------
+const COUNTRIES=[
+  ["🇻🇦","+379","Vatican City"],["🇹🇻","+688","Tuvalu"],["🇳🇷","+674","Nauru"],["🇰🇮","+686","Kiribati"],
+  ["🇼🇸","+685","Samoa"],["🇹🇴","+676","Tonga"],["🇫🇯","+679","Fiji"],["🇵🇼","+680","Palau"],
+  ["🇫🇲","+691","Micronesia"],["🇲🇭","+692","Marshall Islands"],["🇸🇧","+677","Solomon Islands"],["🇻🇺","+678","Vanuatu"],
+  ["🇬🇱","+299","Greenland"],["🇫🇴","+298","Faroe Islands"],["🇦🇩","+376","Andorra"],["🇲🇨","+377","Monaco"],
+  ["🇱🇮","+423","Liechtenstein"],["🇸🇲","+378","San Marino"],["🇬🇮","+350","Gibraltar"],["🇲🇹","+356","Malta"],
+  ["🇨🇾","+357","Cyprus"],["🇮🇸","+354","Iceland"],["🇱🇺","+352","Luxembourg"],["🇪🇪","+372","Estonia"],
+  ["🇱🇻","+371","Latvia"],["🇱🇹","+370","Lithuania"],["🇲🇩","+373","Moldova"],["🇦🇲","+374","Armenia"],
+  ["🇧🇾","+375","Belarus"],["🇬🇪","+995","Georgia"],["🇦🇿","+994","Azerbaijan"],["🇰🇿","+7","Kazakhstan"],
+  ["🇲🇳","+976","Mongolia"],["🇧🇹","+975","Bhutan"],["🇲🇻","+960","Maldives"],["🇳🇵","+977","Nepal"],
+  ["🇱🇰","+94","Sri Lanka"],["🇧🇩","+880","Bangladesh"],["🇵🇰","+92","Pakistan"],["🇦🇫","+93","Afghanistan"],
+  ["🇲🇲","+95","Myanmar"],["🇰🇭","+855","Cambodia"],["🇱🇦","+856","Laos"],["🇧🇳","+673","Brunei"],
+  ["🇹🇱","+670","Timor-Leste"],["🇵🇬","+675","Papua New Guinea"],["🇳🇨","+687","New Caledonia"],["🇵🇫","+689","French Polynesia"],
+  ["🇧🇧","+1246","Barbados"],["🇯🇲","+1876","Jamaica"],["🇹🇹","+1868","Trinidad & Tobago"],["🇧🇸","+1242","Bahamas"],
+  ["🇧🇿","+501","Belize"],["🇬🇹","+502","Guatemala"],["🇸🇻","+503","El Salvador"],["🇭🇳","+504","Honduras"],
+  ["🇳🇮","+505","Nicaragua"],["🇨🇷","+506","Costa Rica"],["🇵🇦","+507","Panama"],["🇵🇪","+51","Peru"],
+  ["🇪🇨","+593","Ecuador"],["🇧🇴","+591","Bolivia"],["🇵🇾","+595","Paraguay"],["🇺🇾","+598","Uruguay"],
+  ["🇬🇾","+592","Guyana"],["🇻🇪","+58","Venezuela"],["🇨🇴","+57","Colombia"],["🇨🇱","+56","Chile"],
+  ["🇦🇷","+54","Argentina"],["🇧🇷","+55","Brazil"],["🇲🇽","+52","Mexico"],["🇨🇺","+53","Cuba"],
+  ["🇩🇿","+213","Algeria"],["🇹🇳","+216","Tunisia"],["🇱🇾","+218","Libya"],["🇪🇬","+20","Egypt"],
+  ["🇲🇦","+212","Morocco"],["🇸🇩","+249","Sudan"],["🇪🇹","+251","Ethiopia"],["🇰🇪","+254","Kenya"],
+  ["🇹🇿","+255","Tanzania"],["🇺🇬","+256","Uganda"],["🇳🇬","+234","Nigeria"],["🇬🇭","+233","Ghana"],
+  ["🇿🇦","+27","South Africa"],["🇿🇼","+263","Zimbabwe"],["🇿🇲","+260","Zambia"],["🇲🇿","+258","Mozambique"],
+  ["🇦🇴","+244","Angola"],["🇨🇲","+237","Cameroon"],["🇸🇳","+221","Senegal"],["🇨🇮","+225","Côte d'Ivoire"],
+  ["🇸🇦","+966","Saudi Arabia"],["🇦🇪","+971","UAE"],["🇶🇦","+974","Qatar"],["🇰🇼","+965","Kuwait"],
+  ["🇧🇭","+973","Bahrain"],["🇴🇲","+968","Oman"],["🇾🇪","+967","Yemen"],["🇯🇴","+962","Jordan"],
+  ["🇱🇧","+961","Lebanon"],["🇸🇾","+963","Syria"],["🇮🇶","+964","Iraq"],["🇮🇷","+98","Iran"],
+  ["🇮🇱","+972","Israel"],["🇹🇷","+90","Turkey"],["🇬🇷","+30","Greece"],["🇵🇹","+351","Portugal"],
+  ["🇪🇸","+34","Spain"],["🇫🇷","+33","France"],["🇮🇹","+39","Italy"],["🇩🇪","+49","Germany"],
+  ["🇳🇱","+31","Netherlands"],["🇧🇪","+32","Belgium"],["🇨🇭","+41","Switzerland"],["🇦🇹","+43","Austria"],
+  ["🇸🇪","+46","Sweden"],["🇳🇴","+47","Norway"],["🇩🇰","+45","Denmark"],["🇫🇮","+358","Finland"],
+  ["🇵🇱","+48","Poland"],["🇨🇿","+420","Czechia"],["🇸🇰","+421","Slovakia"],["🇭🇺","+36","Hungary"],
+  ["🇷🇴","+40","Romania"],["🇧🇬","+359","Bulgaria"],["🇷🇸","+381","Serbia"],["🇭🇷","+385","Croatia"],
+  ["🇺🇦","+380","Ukraine"],["🇷🇺","+7","Russia"],["🇬🇧","+44","United Kingdom"],["🇮🇪","+353","Ireland"],
+  ["🇨🇳","+86","China"],["🇯🇵","+81","Japan"],["🇰🇷","+82","South Korea"],["🇹🇼","+886","Taiwan"],
+  ["🇭🇰","+852","Hong Kong"],["🇲🇴","+853","Macau"],["🇸🇬","+65","Singapore"],["🇲🇾","+60","Malaysia"],
+  ["🇹🇭","+66","Thailand"],["🇻🇳","+84","Vietnam"],["🇮🇩","+62","Indonesia"],["🇵🇭","+63","Philippines"],
+  ["🇦🇺","+61","Australia"],["🇳🇿","+64","New Zealand"],["🇺🇸","+1","United States"],["🇨🇦","+1","Canada"],
+  ["🇮🇳","+91","India"],
+  ["🇧🇼","+267","Botswana"],["🇳🇦","+264","Namibia"],["🇲🇼","+265","Malawi"],["🇷🇼","+250","Rwanda"],
+];
+function openCC(){
+  const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";scrim.onclick=closeSheet;
+  const sheet=document.createElement("div");sheet.className="sheet";sheet.id="sheet";
+  sheet.innerHTML=`
+    <div style="padding:18px 20px 10px">
+      <div style="width:38px;height:4px;background:#e2e2e6;border-radius:3px;margin:0 auto 14px"></div>
+      <div style="font-size:16px;font-weight:800">Select country code</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:4px">Scroll to find your country.</div>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:0 8px 14px">
+      ${COUNTRIES.map((c,i)=>`<div onclick="pickCC(${i})" class="row" style="padding:13px 12px;border-bottom:1px solid var(--line);cursor:pointer">
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px"><span style="font-size:18px">${c[0]}</span><span>${c[2]}</span></div>
+        <div style="color:var(--sub);font-size:13.5px">${c[1]}</div></div>`).join("")}
+    </div>`;
+  document.getElementById("phone").appendChild(scrim);
+  document.getElementById("phone").appendChild(sheet);
+}
+function pickCC(i){const c=COUNTRIES[i];M.user.cc=c[1];M.user.flag=c[0];tap();closeSheet();render();toast(`Country set to ${c[2]} (${c[1]})`);}
+ 
+// ---------------- DEBRIEF ----------------
+function debrief(){
+  const secs=M.startTime?Math.round((Date.now()-M.startTime)/1000):0;
+  const mm=Math.floor(secs/60),ss=secs%60;
+  const steps=[
+    ["Getting into the app","A splash that loaded twice, showing nothing","Open straight to the food"],
+    ["Adding your address first","Forced full manual entry, 6-char rule, a country list with no search","Detect location, remember it, let you skip"],
+    ["Finding food (list)","No search at all; offer codes you had to memorise by eye","A working search and one-tap 'apply' coupons"],
+    ["Finding food (search)","A search bar that never returned results, then 20 options to wade through","Show relevant matches on the first try"],
+    ["The restaurant","Only 2 items shown, both 'top sellers'","Show the full menu, clearly"],
+    ["The dish","Buried under endless filters, offers and 'popular' nudges","The dish, its price, and one clear Add button"],
+    ["Adding one item","Three taps: which meal, confirm quantity, add-more","One tap; adjust in the cart"],
+    ["The coupon","The memorised code applied — then didn't qualify anyway","Only show codes that actually work here"],
+    ["The profile","Your address, orders and card were all saved — but none of it was usable","Reuse what you saved to save the person effort"],
+  ];
+  screen.innerHTML=`
+  <div style="padding:30px 22px 40px" class="fadein">
+    <div style="text-align:center">
+      <div style="width:58px;height:58px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto">✓</div>
+      <div style="font-size:21px;font-weight:800;margin-top:14px">You got your biryani.</div>
+      <div style="font-size:13.5px;color:var(--sub);margin-top:8px;line-height:1.5">It worked — after <b>${M.taps} taps</b>${secs?` and about <b>${mm}m ${ss}s</b>`:''}. Every screen was trying to help. None of them respected your time.</div>
+    </div>
+ 
+    <div style="margin-top:28px;border-top:1px solid var(--line);padding-top:22px">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.6px">WHAT IT DID vs. THE SHORTEST PATH</div>
+    </div>
+    ${steps.map(s=>`<div style="margin-top:16px">
+      <div style="font-size:13.5px;font-weight:700">${s[0]}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.45"><span style="color:var(--red)">What happened:</span> ${s[1]}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:2px;line-height:1.45"><span style="color:var(--green)">Shortest path:</span> ${s[2]}</div>
+    </div>`).join("")}
+ 
+    <div style="margin-top:32px;text-align:center">
+      <svg viewBox="0 0 260 260" width="220" height="220" style="max-width:80%">
+        <circle cx="130" cy="130" r="120" fill="none" stroke="#f3c8ce" stroke-width="1.5"/>
+        <circle cx="130" cy="130" r="88" fill="none" stroke="#eaa3ad" stroke-width="1.5"/>
+        <circle cx="130" cy="130" r="56" fill="var(--red)" opacity="0.08"/>
+        <circle cx="130" cy="130" r="56" fill="none" stroke="var(--red)" stroke-width="2"/>
+        <text x="130" y="126" text-anchor="middle" font-size="13" font-weight="800" fill="#171719">Customer</text>
+        <text x="130" y="143" text-anchor="middle" font-size="13" font-weight="800" fill="#171719">experience</text>
+        <text x="130" y="60" text-anchor="middle" font-size="11" fill="#71717a">decisions</text>
+        <text x="130" y="34" text-anchor="middle" font-size="11" fill="#71717a">ideas · feedback</text>
+      </svg>
+    </div>
+ 
+    <div style="margin-top:8px;background:var(--red-soft);border-radius:16px;padding:18px">
+      <div style="font-size:14px;line-height:1.6;color:#7a1523">Customer experience is the core. Our ideas, the feedback we take, and the decisions we make all orbit it — and only matter if they make that core better. We can change almost anything, as long as the experience stays at the centre. Effort that doesn't serve it isn't a feature. It's just waste in a nicer wrapper.</div>
+    </div>
+ 
+    <button onclick="restart()" style="width:100%;margin-top:20px;background:var(--ink);color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600">Run it again</button>
+  </div>`;
+}
+function restart(){
+  M.page="splash";M.taps=0;M.startTime=null;M.cart=[];M.memorizedCode="";M.codeMsg="";M.searchStage=0;
+  M.user={name:"",phone:"",cc:"+91",flag:"🇮🇳",addr:{a:"",b:"",c:"",d:""}};
+  render();
+}
+ 
+// ---------------- SHEETS + RENDER ----------------
+function showSheet(inner){closeSheet();const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";scrim.onclick=closeSheet;const sheet=document.createElement("div");sheet.className="sheet";sheet.id="sheet";sheet.innerHTML=inner;document.getElementById("phone").appendChild(scrim);document.getElementById("phone").appendChild(sheet);}
+function closeSheet(){["scrim","sheet"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});}
+function render(){
+  closeSheet();
+  const p=M.page;
+  if(p==="splash")return splash();
+  if(p==="address")return address();
+  if(p==="list")return list();
+  if(p==="search")return search();
+  if(p==="restaurant")return restaurant();
+  if(p==="dish")return dish();
+  if(p==="cart")return cart();
+  if(p==="profile")return profile();
+  if(p==="debrief")return debrief();
+}
+render();
+</script>
+</body>
+</html>
+ 
