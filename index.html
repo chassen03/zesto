@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#d6273f" />
+<title>Zesto — Food, delivered</title>
+<style>
+  :root{
+    --red:#d6273f; --red-deep:#b01e33; --red-soft:#fff0f2; --red-tint:#fde8eb;
+    --ink:#171719; --sub:#71717a; --line:#eeeef1; --field:#f5f5f7;
+    --green:#12924a; --amber:#e8a13a; --card:#ffffff;
+    --shadow:0 6px 24px rgba(0,0,0,.08); --shadow-lg:0 14px 40px rgba(0,0,0,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+    background:#0c0c0e;color:var(--ink);
+    display:flex;justify-content:center;align-items:stretch;
+  }
+  /* phone frame on desktop; full-bleed on real mobile */
+  #phone{
+    width:100%;max-width:430px;background:#fff;position:relative;overflow:hidden;
+    min-height:100vh;display:flex;flex-direction:column;
+  }
+  @media(min-width:600px){
+    body{align-items:center;padding:16px}
+    #phone{height:900px;min-height:0;border-radius:38px;box-shadow:var(--shadow-lg);border:10px solid #0c0c0e}
+  }
+  .screen{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .screen::-webkit-scrollbar{display:none}
+  button{font-family:inherit;border:none;cursor:pointer}
+  .btn{width:100%;background:var(--red);color:#fff;border-radius:14px;padding:16px;font-size:15px;font-weight:600;letter-spacing:.2px;box-shadow:0 6px 18px rgba(214,39,63,.28)}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#eab8c0;box-shadow:none}
+  .btn-ghost{background:transparent;color:var(--sub);font-size:12.5px;font-weight:500;padding:8px}
+  .field{width:100%;background:var(--field);border:1px solid transparent;border-radius:12px;padding:14px 15px;font-size:15px}
+  .field:focus{outline:none;border-color:var(--red);background:#fff}
+  .pill{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--field);color:var(--sub)}
+  .row{display:flex;align-items:center;justify-content:space-between}
+  .muted{color:var(--sub)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.18);padding:22px 20px 26px;z-index:50;animation:up .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:40;animation:fade .2s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:#1f1f22;color:#fff;font-size:12.5px;padding:12px 16px;border-radius:12px;z-index:120;max-width:88%;text-align:center;line-height:1.4;box-shadow:var(--shadow-lg)}
+  .spin{width:26px;height:26px;border:3px solid var(--red-tint);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite;display:inline-block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .fadein{animation:fi .4s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .topbar{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:10}
+  .cart-bar{position:sticky;bottom:0;background:var(--red);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 -6px 20px rgba(214,39,63,.24);cursor:pointer}
+  .cardbox{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+</style>
+</head>
+<body>
+<div id="phone"><div class="screen" id="screen"></div></div>
+
+<script>
+const screen = document.getElementById("screen");
+
+// ---------------- STATE ----------------
+const M = {
+  page:"splash",
+  taps:0, startTime:null,
+  cart:[],                 // {name, price, qty}
+  couponMsg:"", priceRevealed:false,
+  addr:"", pin:"",
+  payPhase:"list", payMethod:"", tip:40, roundup:true,
+  trackStage:0,
+};
+// count every meaningful tap
+function tap(){ M.taps++; }
+function nav(p){ tap(); M.page=p; window.scrollTo?.(0,0); render(); }
+
+function toast(msg,ms=2400){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  screen.appendChild(t); setTimeout(()=>t.remove(),ms);
+}
+function money(n){ return "₹"+n; }
+function cartCount(){ return M.cart.reduce((s,i)=>s+i.qty,0); }
+function cartSubtotal(){ return M.cart.reduce((s,i)=>s+i.price*i.qty,0); }
+
+// ---------------- SPLASH ----------------
+function splash(){
+  screen.innerHTML = `
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--red),var(--red-deep));color:#fff">
+    <div class="fadein" style="text-align:center">
+      <div style="font-size:15px;letter-spacing:6px;opacity:.85;font-weight:600">ZESTO</div>
+      <div style="font-size:40px;margin-top:8px">🍜</div>
+      <div style="margin-top:26px;width:200px;height:6px;background:rgba(255,255,255,.25);border-radius:6px;overflow:hidden">
+        <div id="bar" style="height:100%;width:0;background:#fff;border-radius:6px;transition:width .4s"></div>
+      </div>
+      <div id="loadtxt" style="font-size:12px;margin-top:14px;opacity:.85">Preparing your experience…</div>
+    </div>
+  </div>`;
+  const bar=document.getElementById("bar"), txt=document.getElementById("loadtxt");
+  let p=0;
+  const seq=[18,44,72,96,100,0,30,64,100]; let i=0;
+  const tick=()=>{
+    if(i>=seq.length){ M.startTime=Date.now(); nav("home"); return; }
+    p=seq[i]; bar.style.width=p+"%";
+    if(seq[i]===100 && i<5) txt.textContent="Almost there…";
+    else if(seq[i]===0) txt.textContent="Just a moment, optimising…";
+    else if(i>=6) txt.textContent="Finalising the finishing touches…";
+    i++; setTimeout(tick, p===0?500:650);
+  };
+  setTimeout(tick,500);
+}
+
+// ---------------- HOME ----------------
+function home(){
+  const offers=[
+    ["60% OFF","up to ₹120","#d6273f"],
+    ["FREE delivery","over ₹399","#b01e33"],
+    ["Buy 1 Get 1","selected items","#e8556b"],
+  ];
+  const cats=[["🍛","Biryani"],["🍕","Pizza"],["🍔","Burgers"],["🥘","Thali"],["🍜","Noodles"],["🍰","Desserts"]];
+  const restos=[
+    ["Spice Route","North Indian · Biryani","4.5","30–35 min","₹300 for two"],
+    ["Bella Napoli","Italian · Pizza","4.3","25–30 min","₹450 for two"],
+    ["Wok & Roll","Chinese · Asian","4.4","35–40 min","₹350 for two"],
+  ];
+  screen.innerHTML = `
+  <div class="topbar">
+    <div>
+      <div style="font-size:11px;color:var(--sub);display:flex;align-items:center;gap:4px">DELIVER TO</div>
+      <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:5px">Home · 400001 <span style="color:var(--red)">▾</span></div>
+    </div>
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--field);display:flex;align-items:center;justify-content:center;font-size:18px">👤</div>
+  </div>
+
+  <div style="padding:16px 18px 0">
+    <div onclick="nav('search')" style="display:flex;align-items:center;gap:10px;background:var(--field);border-radius:14px;padding:14px 15px;cursor:pointer">
+      <span style="font-size:17px">🔍</span>
+      <span style="color:var(--sub);font-size:14px">Search “biryani”, restaurants…</span>
+    </div>
+  </div>
+
+  <div style="padding:18px 0 4px">
+    <div style="display:flex;gap:12px;overflow-x:auto;padding:0 18px" class="noscroll">
+      ${offers.map(o=>`<div style="flex:none;width:150px;border-radius:16px;padding:16px;color:#fff;background:linear-gradient(135deg,${o[2]},#7a1523)">
+        <div style="font-size:18px;font-weight:800">${o[0]}</div>
+        <div style="font-size:12px;opacity:.9;margin-top:2px">${o[1]}</div>
+      </div>`).join("")}
+    </div>
+  </div>
+
+  <div style="padding:14px 18px 4px">
+    <div style="font-size:15px;font-weight:800">What's on your mind?</div>
+    <div style="display:flex;gap:16px;overflow-x:auto;margin-top:12px;padding-bottom:4px">
+      ${cats.map(c=>`<div onclick="nav('search')" style="flex:none;text-align:center;cursor:pointer">
+        <div style="width:58px;height:58px;border-radius:50%;background:var(--red-soft);display:flex;align-items:center;justify-content:center;font-size:26px">${c[0]}</div>
+        <div style="font-size:11px;margin-top:6px;color:var(--sub)">${c[1]}</div>
+      </div>`).join("")}
+    </div>
+  </div>
+
+  <div style="padding:14px 18px 100px">
+    <div style="font-size:15px;font-weight:800;margin-bottom:12px">Top restaurants near you</div>
+    ${restos.map((r,idx)=>`<div onclick="nav('menu')" class="cardbox fadein" style="margin-bottom:14px;cursor:pointer">
+      <div style="height:120px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:40px">${["🍛","🍕","🥡"][idx]}</div>
+      <div style="padding:12px 14px">
+        <div class="row"><div style="font-size:15px;font-weight:700">${r[0]}</div>
+          <div style="background:var(--green);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px">★ ${r[2]}</div></div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${r[1]}</div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:6px">⏱ ${r[3]} · ${r[4]}</div>
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+
+// ---------------- SEARCH ----------------
+function search(){
+  screen.innerHTML = `
+  <div class="topbar">
+    <span onclick="nav('home')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="flex:1;margin-left:10px;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px">
+      <span>🔍</span><input id="sq" class="field" style="padding:0;background:transparent;font-size:14px" placeholder="Search for dishes" />
+    </div>
+  </div>
+  <div style="padding:18px">
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px">RECENT SEARCHES</div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${["Biryani","Pizza","Cold coffee","Rolls"].map(x=>`<span class="pill" onclick="document.getElementById('sq').value='${x}'">${x}</span>`).join("")}
+    </div>
+    <button class="btn" style="margin-top:22px" onclick="runSearch()">Search</button>
+    <div id="sresult" style="margin-top:20px"></div>
+  </div>`;
+}
+let searchStage=0;
+function runSearch(){
+  tap();
+  const q=(document.getElementById("sq").value||"biryani").trim();
+  const box=document.getElementById("sresult");
+  box.innerHTML=`<div style="text-align:center;padding:20px"><span class="spin"></span><div style="font-size:12.5px;color:var(--sub);margin-top:12px">Finding the best ${q} for you…</div></div>`;
+  setTimeout(()=>{
+    if(searchStage===0){
+      searchStage=1;
+      box.innerHTML=`
+        <div class="cardbox fadein" style="padding:14px">
+          <div class="row"><div><div style="font-weight:700;font-size:14px">Spice Route</div><div style="font-size:12px;color:var(--sub)">Biryani · 8.2 km away</div></div>
+          <div style="background:var(--green);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px">★ 4.5</div></div>
+        </div>
+        <div style="font-size:12.5px;color:var(--sub);text-align:center;margin-top:16px">Only 1 result nearby.</div>
+        <button class="btn" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none" onclick="expandSearch()">Expand search area</button>`;
+    }
+  },1600);
+}
+function expandSearch(){
+  tap();
+  const box=document.getElementById("sresult");
+  box.innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:12.5px;color:var(--sub)">Please re-enter your search to expand.</div>
+    <div style="margin-top:14px;display:flex;gap:8px"><input id="sq2" class="field" placeholder="Type again…"/><button class="btn" style="width:auto;padding:0 16px;margin:0" onclick="nav('menu')">Go</button></div></div>`;
+}
+
+// ---------------- MENU ----------------
+function menu(){
+  const dishes=[
+    ["Chicken Biryani",249,"Aromatic, serves 1"],
+    ["Paneer Butter Masala",229,"Rich & creamy"],
+    ["Garlic Naan",65,"Tandoor-fresh"],
+    ["Gulab Jamun",89,"2 pieces"],
+  ];
+  screen.innerHTML = `
+  <div class="topbar">
+    <span onclick="nav('home')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Spice Route</div>
+    <span style="font-size:19px">🔖</span>
+  </div>
+  <div style="padding:16px 18px;border-bottom:8px solid var(--field)">
+    <div class="row"><div>
+      <div style="font-size:20px;font-weight:800">Spice Route</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:2px">North Indian · Biryani</div>
+    </div>
+    <div style="text-align:center;border:1px solid var(--line);border-radius:10px;padding:6px 10px">
+      <div style="color:var(--green);font-weight:800;font-size:14px">★ 4.5</div>
+      <div style="font-size:10px;color:var(--sub)">2.1k ratings</div></div>
+    </div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:10px">⏱ 30–35 min · 8.2 km · ₹300 for two</div>
+  </div>
+  <div style="padding:14px 18px 110px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:6px">Recommended</div>
+    ${dishes.map((d,i)=>`
+      <div style="display:flex;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)">
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:600">${d[0]}</div>
+          <div style="font-size:14px;font-weight:700;margin-top:4px">${money(d[1])}</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:6px;line-height:1.4">${d[2]}</div>
+        </div>
+        <div style="width:110px;flex:none;position:relative">
+          <div style="height:90px;border-radius:12px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:30px">${["🍛","🧆","🫓","🍮"][i]}</div>
+          <button onclick="openAddSheet('${d[0]}',${d[1]})" style="position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);background:#fff;color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:8px 20px;font-weight:800;font-size:13px;box-shadow:var(--shadow)">ADD</button>
+        </div>
+      </div>`).join("")}
+  </div>
+  ${cartCount()>0?cartBar():""}`;
+}
+// Bean-style multi-step add
+function openAddSheet(name,price){
+  tap();
+  showSheet(`
+    <div style="font-size:16px;font-weight:800">Add “${name}”</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Which meal is this for?</div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      ${["Lunch","Dinner","Later"].map(m=>`<button class="pill" style="flex:1;padding:12px 0" onclick="addStep2('${name}',${price})">${m}</button>`).join("")}
+    </div>`);
+}
+function addStep2(name,price){
+  tap();
+  showSheet(`
+    <div style="font-size:16px;font-weight:800">Confirm quantity</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px">
+      <span style="font-size:14px">${name}</span>
+      <div style="display:flex;align-items:center;gap:26px">
+        <button onclick="void(0)" style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--sub)">–</button>
+        <span style="font-weight:700">1</span>
+        <button onclick="void(0)" style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--red)">+</button>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:20px" onclick="addStep3('${name}',${price})">Confirm quantity: 1</button>`);
+}
+function addStep3(name,price){
+  tap();
+  showSheet(`
+    <div style="text-align:center">
+      <div style="font-size:34px">✅</div>
+      <div style="font-size:16px;font-weight:800;margin-top:8px">Added to cart</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Would you like to add another item?</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" style="background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none" onclick="finishAdd('${name}',${price},true)">Add more</button>
+      <button class="btn" onclick="finishAdd('${name}',${price},false)">Go to cart</button>
+    </div>`);
+}
+function finishAdd(name,price,more){
+  tap();
+  const ex=M.cart.find(i=>i.name===name);
+  if(ex) ex.qty++; else M.cart.push({name,price,qty:1});
+  closeSheet();
+  if(more){ render(); } else { M.page="cart"; render(); }
+}
+
+function cartBar(){
+  return `<div class="cart-bar" onclick="nav('cart')">
+    <div><div style="font-size:12px;opacity:.9">${cartCount()} item${cartCount()>1?"s":""} · ${money(cartSubtotal())}</div>
+    <div style="font-size:14px;font-weight:700">View cart</div></div>
+    <div style="font-size:14px;font-weight:700">→</div>
+  </div>`;
+}
+
+// ---------------- CART ----------------
+function cart(){
+  screen.innerHTML = `
+  <div class="topbar">
+    <span onclick="nav('menu')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Your cart</div><span style="width:20px"></span>
+  </div>
+  <div style="padding:16px 18px 120px">
+    <div class="cardbox" style="padding:6px 14px">
+      ${M.cart.map(i=>`<div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)">
+        <div style="font-size:14px">${i.name} <span style="color:var(--sub)">× ${i.qty}</span></div>
+        <div style="font-size:14px;font-weight:600">${money(i.price*i.qty)}</div>
+      </div>`).join("")||'<div class="muted" style="padding:16px;text-align:center">Cart empty</div>'}
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <input id="promo" class="field" placeholder="Enter coupon code (try SAVE50)" />
+      <button class="btn" style="width:auto;padding:0 18px;margin:0" onclick="applyPromo()">Apply</button>
+    </div>
+    <div id="promomsg" style="font-size:12.5px;margin-top:8px;min-height:16px;color:var(--sub)">${M.couponMsg}</div>
+
+    <div class="cardbox" style="margin-top:16px;padding:14px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px">Bill summary</div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Item total</span><span>${money(cartSubtotal())}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Delivery fee</span><span>${money(39)}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Taxes & charges</span><span>${money(48)}</span></div>
+      <div style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px" class="row">
+        <span style="font-weight:800">To pay</span>
+        <span style="font-weight:800">${M.priceRevealed?money(cartSubtotal()+87):`<span onclick="revealPrice()" style="color:var(--red);font-size:12.5px;cursor:pointer;text-decoration:underline">Tap to reveal final price</span>`}</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="nav('address')">Proceed to address</button>
+  </div>`;
+}
+let promoStage=0;
+function applyPromo(){
+  tap();
+  const msg=document.getElementById("promomsg");
+  msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Applying…`;
+  setTimeout(()=>{
+    msg.style.color="var(--green)"; msg.textContent="Coupon SAVE50 applied! You saved ₹50.";
+    setTimeout(()=>{
+      msg.style.color="var(--red)"; M.couponMsg="Coupon removed — minimum order of ₹599 not met.";
+      msg.textContent=M.couponMsg;
+    },1300);
+  },1400);
+}
+function revealPrice(){ tap(); M.priceRevealed=true; render(); }
+
+// ---------------- ADDRESS ----------------
+function address(){
+  screen.innerHTML = `
+  <div class="topbar">
+    <span onclick="nav('cart')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Delivery address</div><span style="width:20px"></span>
+  </div>
+  <div style="height:150px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);position:relative;display:flex;align-items:center;justify-content:center">
+    <div id="pin" style="font-size:34px;transition:transform 1.2s ease">📍</div>
+  </div>
+  <div style="padding:18px 18px 120px">
+    <button class="btn" style="background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none" onclick="useGps()">📍 Use current location</button>
+
+    <div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px">SAVED ADDRESS</div>
+    <div class="cardbox" style="margin-top:8px;padding:14px;opacity:.55">
+      <div class="row"><div style="font-size:14px;font-weight:700">🏠 Home</div><span class="pill" style="background:var(--amber);color:#fff">Re-verify</span></div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Flat 4B, Sea View Apartments, 400001</div>
+      <div onclick="toast('Please re-verify this address by entering it below.')" style="font-size:12px;color:var(--red);margin-top:8px;cursor:pointer">Re-verify to use →</div>
+    </div>
+
+    <div style="margin-top:18px;font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px">OR ENTER MANUALLY</div>
+    <input id="a1" class="field" style="margin-top:10px" placeholder="Flat / House no., Building" />
+    <input id="a2" class="field" style="margin-top:10px" placeholder="Street, Area" />
+    <input id="a3" class="field" style="margin-top:10px" placeholder="PIN code (6 digits)" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6)" />
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="saveAddr()">Deliver here</button>
+  </div>`;
+}
+function useGps(){
+  tap();
+  const pin=document.getElementById("pin");
+  pin.style.transform="translate(120px,60px) scale(.6)";
+  setTimeout(()=>{ toast("Couldn't pinpoint your location. Please enter it manually."); pin.style.transform="none"; },1300);
+}
+function saveAddr(){
+  tap();
+  const a1=document.getElementById("a1").value.trim(), a3=document.getElementById("a3").value.trim();
+  if(!a1){ toast("Please enter your flat / house number."); return; }
+  if(a3.length!==6){ toast("Please enter a valid 6-digit PIN code."); return; }
+  nav("payment");
+}
+
+// ---------------- PAYMENT ----------------
+function payment(){
+  const methods=[["UPI","Pay via any UPI app","📲"],["Credit / Debit card","Visa, Mastercard, Rupay","💳"],["Wallet","Paytm, Amazon Pay","👛"],["Cash on delivery","Pay when it arrives","💵"]];
+  const total=cartSubtotal()+87 + (M.tip||0) + (M.roundup?4:0);
+  screen.innerHTML = `
+  <div class="topbar">
+    <span onclick="nav('cart')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="font-weight:800;font-size:16px">Payment</div><span style="width:20px"></span>
+  </div>
+  <div style="padding:16px 18px 120px">
+    <div class="cardbox" style="padding:14px">
+      <div class="row"><div style="font-size:14px;font-weight:700">Add a tip for your rider</div><div style="font-weight:700">${money(M.tip)}</div></div>
+      <div style="font-size:12px;color:var(--sub);margin-top:5px">A tip of ₹40 has been added to thank your delivery partner.</div>
+      <div onclick="editTip()" style="font-size:12px;color:var(--red);margin-top:8px;cursor:pointer">Change or remove →</div>
+    </div>
+
+    <label class="cardbox" style="padding:13px;margin-top:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="toggleRoundup(event)">
+      <div id="rubox" style="width:22px;height:22px;border-radius:6px;background:${M.roundup?'var(--red)':'#fff'};border:1.5px solid var(--red);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">${M.roundup?'✓':''}</div>
+      <div style="font-size:13px">Round up ₹4 & donate to Feed India</div>
+    </label>
+
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin:18px 0 8px">CHOOSE PAYMENT METHOD</div>
+    ${methods.map(m=>`<div onclick="pickMethod('${m[0]}')" class="cardbox" style="padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer">
+      <span style="font-size:20px">${m[2]}</span>
+      <div><div style="font-size:14px;font-weight:600">${m[0]}</div><div style="font-size:12px;color:var(--sub)">${m[1]}</div></div>
+    </div>`).join("")}
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)">
+    <button class="btn" onclick="placeOrder()">Place order · ${money(total)}</button>
+  </div>`;
+}
+function editTip(){ tap(); showSheet(`
+  <div style="font-size:16px;font-weight:800">Tip your rider</div>
+  <div style="display:flex;gap:8px;margin-top:16px">
+    ${[0,20,40,60].map(v=>`<button class="pill" style="flex:1;padding:14px 0;${M.tip===v?'background:var(--red);color:#fff':''}" onclick="setTip(${v})">${v?('₹'+v):'None'}</button>`).join("")}
+  </div>`); }
+function setTip(v){ tap(); M.tip=v; closeSheet(); render(); }
+function toggleRoundup(e){ e.preventDefault(); tap(); M.roundup=!M.roundup; render(); }
+let methodStage=0;
+function pickMethod(m){
+  tap(); M.payMethod=m;
+  showSheet(`
+    <div style="font-size:16px;font-weight:800">Confirm payment method</div>
+    <div style="font-size:13px;color:var(--sub);margin-top:6px">You've selected <b>${m}</b>. Proceed with this method?</div>
+    <button class="btn" style="margin-top:18px" onclick="confirmMethod()">Yes, use ${m}</button>
+    <button class="btn-ghost" style="width:100%;margin-top:4px" onclick="closeSheet()">Choose a different method</button>`);
+}
+function confirmMethod(){ tap(); closeSheet(); toast("Payment method set. You can place your order."); }
+
+function placeOrder(){
+  tap();
+  if(!M.payMethod){ toast("Please choose a payment method first."); return; }
+  nav("track");
+}
+
+// ---------------- TRACK ----------------
+function track(){
+  const stages=[
+    ["Order placed","Restaurant is confirming"],
+    ["Preparing your food","Spice Route is cooking"],
+    ["Rider assigned","Ravi is heading to the restaurant"],
+    ["Rider unassigned","Reassigning a delivery partner…"],
+    ["Rider reassigned","Sunil has picked up your order"],
+    ["On the way","Arriving shortly"],
+    ["Delivered","Enjoy your meal!"],
+  ];
+  const s=Math.min(M.trackStage,stages.length-1);
+  const eta=[35,38,41,44,40,12,0][s];
+  screen.innerHTML = `
+  <div style="height:230px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);position:relative;overflow:hidden">
+    <div style="position:absolute;top:20px;left:20px;background:#fff;border-radius:12px;padding:10px 14px;box-shadow:var(--shadow)">
+      <div style="font-size:12px;color:var(--sub)">Estimated arrival</div>
+      <div style="font-size:20px;font-weight:800;color:${s===6?'var(--green)':'var(--ink)'}">${s===6?'Delivered':eta+' min'}</div>
+    </div>
+    <div id="rider" style="position:absolute;bottom:40px;left:${s===6?'50%':(s<3?'20%':'70%')};transition:left 1s ease;font-size:34px">🛵</div>
+    <div style="position:absolute;bottom:44px;right:30px;font-size:28px">🏠</div>
+  </div>
+  <div style="padding:20px 18px 40px">
+    <div style="font-size:18px;font-weight:800">${stages[s][0]}</div>
+    <div style="font-size:13px;color:var(--sub);margin-top:4px">${stages[s][1]}</div>
+
+    <div style="margin-top:22px">
+      ${stages.slice(0,6).map((st,i)=>`<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;opacity:${i<=s?1:.35}">
+        <div class="step-num" style="background:${i<s?'var(--green)':i===s?'var(--red)':'var(--field)'};color:${i<=s?'#fff':'var(--sub)'}">${i<s?'✓':i+1}</div>
+        <div style="font-size:13.5px;padding-top:2px">${st[0]}</div>
+      </div>`).join("")}
+    </div>
+
+    ${s<6
+      ? `<button class="btn" onclick="advanceTrack()">Refresh status</button>`
+      : `<button class="btn" style="background:var(--green);box-shadow:0 6px 18px rgba(18,146,74,.3)" onclick="nav('debrief')">Order received — finish</button>`}
+  </div>`;
+}
+function advanceTrack(){ tap(); M.trackStage++; render(); }
+
+// ---------------- DEBRIEF ----------------
+function debrief(){
+  const secs=M.startTime?Math.round((Date.now()-M.startTime)/1000):0;
+  const mm=Math.floor(secs/60), ss=secs%60;
+  const steps=[
+    ["Getting into the app","A splash screen that loaded twice, showing nothing","Open straight to Home"],
+    ["Finding your dish","Search failed once, found one far result, made you re-type to expand","Show relevant results on the first try"],
+    ["Adding one item","Three taps: pick a meal, confirm quantity, choose 'add more'","One tap to add, adjust in the cart"],
+    ["Using a coupon","Applied, celebrated, then silently removed — net zero","Show which coupons actually qualify"],
+    ["Setting the address","GPS failed, saved address locked behind 're-verify', manual entry forced","Reuse the saved address in one tap"],
+    ["Paying","Pre-added tip, pre-ticked donation, a confirm-your-method pop-up","Remember preferences, no surprise add-ons"],
+    ["Tracking","Rider assigned, unassigned, reassigned; the ETA counted up","One honest, steady status"],
+  ];
+  screen.innerHTML = `
+  <div style="padding:30px 22px 40px" class="fadein">
+    <div style="text-align:center">
+      <div style="width:58px;height:58px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto">✓</div>
+      <div style="font-size:21px;font-weight:800;margin-top:14px">You completed your order.</div>
+      <div style="font-size:13.5px;color:var(--sub);margin-top:8px;line-height:1.5">
+        It worked. You got your food — after <b>${M.taps} taps</b>${secs?` and about <b>${mm}m ${ss}s</b>`:''}.<br>Every screen was trying to help. None of them respected your time.
+      </div>
+    </div>
+
+    <div style="margin-top:28px;border-top:1px solid var(--line);padding-top:22px">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.6px;color:var(--ink)">WHAT IT DID vs. THE SHORTEST PATH</div>
+    </div>
+    ${steps.map(s=>`<div style="margin-top:16px">
+      <div style="font-size:13.5px;font-weight:700">${s[0]}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.45"><span style="color:var(--red)">What happened:</span> ${s[1]}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:2px;line-height:1.45"><span style="color:var(--green)">Shortest path:</span> ${s[2]}</div>
+    </div>`).join("")}
+
+    <!-- concentric rings -->
+    <div style="margin-top:32px;text-align:center">
+      <svg viewBox="0 0 260 260" width="220" height="220" style="max-width:80%">
+        <circle cx="130" cy="130" r="120" fill="none" stroke="#f3c8ce" stroke-width="1.5"/>
+        <circle cx="130" cy="130" r="88" fill="none" stroke="#eaa3ad" stroke-width="1.5"/>
+        <circle cx="130" cy="130" r="56" fill="var(--red)" opacity="0.08"/>
+        <circle cx="130" cy="130" r="56" fill="none" stroke="var(--red)" stroke-width="2"/>
+        <text x="130" y="126" text-anchor="middle" font-size="13" font-weight="800" fill="#171719">Customer</text>
+        <text x="130" y="143" text-anchor="middle" font-size="13" font-weight="800" fill="#171719">experience</text>
+        <text x="130" y="60" text-anchor="middle" font-size="11" fill="#71717a">decisions</text>
+        <text x="130" y="34" text-anchor="middle" font-size="11" fill="#71717a">ideas · feedback</text>
+      </svg>
+    </div>
+
+    <div style="margin-top:8px;background:var(--red-soft);border-radius:16px;padding:18px">
+      <div style="font-size:14px;line-height:1.6;color:#7a1523">
+        Customer experience is the core. Our ideas, the feedback we take, and the decisions we make all orbit it — and only matter if they make that core better. We can change almost anything, as long as the experience stays at the centre. Effort that doesn't serve it isn't a feature. It's just waste in a nicer wrapper.
+      </div>
+    </div>
+
+    <button onclick="restart()" style="width:100%;margin-top:20px;background:var(--ink);color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600">Run it again</button>
+  </div>`;
+}
+function restart(){
+  Object.assign(M,{page:"splash",taps:0,startTime:null,cart:[],couponMsg:"",priceRevealed:false,addr:"",pin:"",payPhase:"list",payMethod:"",tip:40,roundup:true,trackStage:0});
+  searchStage=0; promoStage=0; methodStage=0;
+  render();
+}
+
+// ---------------- SHEETS ----------------
+function showSheet(inner){
+  closeSheet();
+  const scrim=document.createElement("div"); scrim.className="scrim"; scrim.id="scrim"; scrim.onclick=closeSheet;
+  const sheet=document.createElement("div"); sheet.className="sheet"; sheet.id="sheet"; sheet.innerHTML=inner;
+  document.getElementById("phone").appendChild(scrim);
+  document.getElementById("phone").appendChild(sheet);
+}
+function closeSheet(){ ["scrim","sheet"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();}); }
+
+// ---------------- RENDER ----------------
+function render(){
+  closeSheet();
+  const p=M.page;
+  if(p==="splash") return splash();
+  if(p==="home") return home();
+  if(p==="search") return search();
+  if(p==="menu") return menu();
+  if(p==="cart") return cart();
+  if(p==="address") return address();
+  if(p==="payment") return payment();
+  if(p==="track") return track();
+  if(p==="debrief") return debrief();
+}
+render();
+</script>
+</body>
+</html>
