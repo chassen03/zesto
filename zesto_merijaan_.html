@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#d6273f" />
+<title>Zesto — Food, delivered</title>
+<style>
+  :root{
+    --red:#d6273f;--red-deep:#b01e33;--red-soft:#fff0f2;--red-tint:#fde8eb;
+    --ink:#171719;--sub:#71717a;--line:#eeeef1;--field:#f5f5f7;
+    --green:#12924a;--amber:#e8a13a;--poppy:#ffd21f;--poppy-bg:#fff8d6;--card:#fff;
+    --shadow:0 6px 24px rgba(0,0,0,.08);--shadow-lg:0 14px 40px rgba(0,0,0,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow-x:hidden}
+  body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:#fff;color:var(--ink);display:flex;justify-content:center}
+  #phone{width:100%;max-width:100%;background:#fff;min-height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  #mktticker{flex:none;background:#0e0e10;color:#e8e8e8;height:26px;display:flex;align-items:center;overflow:hidden;white-space:nowrap;font-size:11.5px;font-family:'Segoe UI',system-ui,sans-serif;border-bottom:1px solid #26262a;z-index:20}
+  #mktticker .mk-track{display:inline-block;padding-left:100%;animation:mkscroll 22s linear infinite}
+  #mktticker .up{color:#3ad07a}
+  #mktticker .down{color:#ff6b6b}
+  #mktticker .sym{color:#c9c9c9;font-weight:600}
+  @keyframes mkscroll{to{transform:translateX(-100%)}}
+  @media(min-width:600px){body{background:#0c0c0e;align-items:center;padding:16px}#phone{max-width:430px;height:900px;min-height:0;border-radius:38px;box-shadow:var(--shadow-lg);border:10px solid #0c0c0e}}
+  .screen{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .screen::-webkit-scrollbar{display:none}
+  button{font-family:inherit;border:none;cursor:pointer}
+  .btn{width:100%;background:var(--red);color:#fff;border-radius:14px;padding:16px;font-size:15px;font-weight:600;letter-spacing:.2px;box-shadow:0 6px 18px rgba(214,39,63,.28)}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#eab8c0;box-shadow:none}
+  .btn-outline{background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none}
+  .field{width:100%;background:var(--field);border:1px solid transparent;border-radius:12px;padding:14px 15px;font-size:15px}
+  .field:focus{outline:none;border-color:var(--red);background:#fff}
+  .pill{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;background:var(--field);color:var(--sub)}
+  .row{display:flex;align-items:center;justify-content:space-between}
+  .muted{color:var(--sub)}
+  .topbar{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:10}
+  .cardbox{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;max-width:100%}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--red-soft);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:1.5px solid var(--red);flex:none}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.18);z-index:50;animation:up .28s cubic-bezier(.2,.8,.2,1);max-height:80%;display:flex;flex-direction:column}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .sheet-pad{padding:22px 20px 26px}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:40;animation:fade .2s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:#1f1f22;color:#fff;font-size:12.5px;padding:12px 16px;border-radius:12px;z-index:120;max-width:88%;text-align:center;line-height:1.4;box-shadow:var(--shadow-lg)}
+  .spin{width:26px;height:26px;border:3px solid var(--red-tint);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite;display:inline-block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .fadein{animation:fi .4s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .filtchip{flex:none;padding:8px 14px;border-radius:20px;background:var(--field);font-size:12.5px;color:var(--sub);white-space:nowrap}
+  [style*="overflow-x:auto"]{max-width:100%}
+  .dishframe{position:relative}
+  .dishframe .orbit{position:absolute;font-size:15px;animation:orbit 6s linear infinite;will-change:transform}
+  @keyframes orbit{0%{transform:rotate(0deg) translateX(60px) rotate(0deg)}100%{transform:rotate(360deg) translateX(60px) rotate(-360deg)}}
+  .marquee{overflow:hidden;white-space:nowrap}
+  .marquee b{display:inline-block;padding-left:100%;animation:mq 12s linear infinite}
+  @keyframes mq{to{transform:translateX(-100%)}}
+  .pulse{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .bob{animation:bob 2.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .blink{animation:blink 1.4s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  /* --- feedback screen --- */
+  .fb-hero{background:linear-gradient(160deg,#e2571e 0%,#d6273f 55%,#b01e33 100%);color:#fff;border-radius:0 0 32px 32px;padding:40px 24px 34px;text-align:center;position:relative;overflow:hidden}
+  .fb-hero .sprinkle{position:absolute;font-size:16px;opacity:.5;animation:floaty 5s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(12deg)}}
+  .fb-star{font-size:38px;cursor:pointer;transition:transform .15s;filter:grayscale(1) opacity(.4)}
+  .fb-star.lit{filter:none;transform:scale(1.12)}
+  .fb-star:active{transform:scale(1.3)}
+  .fb-choice{flex:1;padding:16px 10px;border-radius:16px;border:1.5px solid var(--line);background:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+  .fb-choice:active{transform:translateY(1px)}
+  .fb-choice.sel{border-color:var(--red);background:var(--red-soft);color:var(--red)}
+  .shine{background:linear-gradient(90deg,#e2571e,#d6273f,#e2571e);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 3s linear infinite}
+  @keyframes shine{to{background-position:200% 0}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="phone"><div id="mktticker"></div><div class="screen" id="screen"></div></div>
+<script>
+const screen=document.getElementById("screen");
+
+/* ============================================================
+   MARKET TICKER — a deliberately irrelevant "why is this in a
+   food app?" feature. Simulated (no live API): drifts realistically,
+   never breaks, needs no key, works offline.
+   ============================================================ */
+const MKT=[
+  {sym:"NIFTY 50", val:22147.60, seed:0.9},
+  {sym:"SENSEX", val:73128.40, seed:1.1},
+  {sym:"BANK NIFTY", val:47320.15, seed:1.4},
+  {sym:"NIFTY IT", val:34012.80, seed:1.0},
+  {sym:"USD/INR", val:83.24, seed:0.02},
+  {sym:"GOLD", val:71850, seed:0.6},
+  {sym:"RELIANCE", val:2934.5, seed:0.5},
+  {sym:"TCS", val:3888.2, seed:0.5},
+  {sym:"INFY", val:1642.9, seed:0.4},
+  {sym:"HDFC BANK", val:1521.3, seed:0.4},
+];
+MKT.forEach(m=>{m.base=m.val;m.chg=(Math.random()-0.45)*m.seed*10;});
+function drift(){
+  MKT.forEach(m=>{
+    // gentle random walk around the base
+    m.chg += (Math.random()-0.5)*m.seed*2;
+    m.chg = Math.max(-m.seed*14, Math.min(m.seed*14, m.chg));
+    m.val = m.base + m.chg;
+  });
+}
+function renderTicker(){
+  const el=document.getElementById("mktticker");
+  if(!el) return;
+  const items=MKT.map(m=>{
+    const pct=(m.chg/m.base*100);
+    const up=m.chg>=0;
+    const cls=up?"up":"down";
+    const arrow=up?"▲":"▼";
+    const dec = m.val>1000?0:2;
+    const valStr = m.val.toLocaleString("en-IN",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    return `<span class="sym">${m.sym}</span> ${valStr} <span class="${cls}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>`;
+  }).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+  const inner=`📈&nbsp;&nbsp;LIVE MARKETS&nbsp;&nbsp;·&nbsp;&nbsp;${items}&nbsp;&nbsp;·&nbsp;&nbsp;`;
+  let track=el.querySelector(".mk-track");
+  if(!track){ el.innerHTML=`<span class="mk-track">${inner}</span>`; }
+  else { track.innerHTML=inner; }   // update text only; animation keeps running
+}
+renderTicker();
+setInterval(()=>{ drift(); renderTicker(); }, 4000);
+
+/* ============================================================
+   DATA LAYER — single source of truth + normalized references
+   ============================================================ */
+const DISHES=[
+  {id:0, quirky:"Dilwale Biryani Le Jaayenge", real:"Chicken Biryani", cat:"Biryani", emoji:"🍛", price:249,
+   origin:"Hyderabad, India (with Persian roots)",
+   history:"India's undisputed delivery champion — over 90 million biryanis were ordered on Swiggy in a single year, roughly one for every phone in the country having a really good day. It descends from the Persian 'birian' and was perfected in the kitchens of the Nizams of Hyderabad. Every region, every family, every uncle claims the one true recipe, and whether potato belongs in it has ended friendships. It is less a dish than a national group chat that occasionally produces rice."},
+  {id:1, quirky:"Dosa Factory", real:"Masala Dosa", cat:"South Indian", emoji:"🥞", price:149,
+   origin:"Udupi, Karnataka",
+   history:"The most-ordered vegetarian dish in the country, equally happy at breakfast, lunch, or 11pm. A fermented rice-and-lentil crepe that can stretch longer than your forearm, born in the temple kitchens of Udupi and stuffed with spiced potato somewhere along the way. Ordering the longest one on the table is a recognised competitive sport. It arrives looking less like food and more like architecture."},
+  {id:2, quirky:"The Burger Files", real:"Veggie Burger", cat:"Fast Food", emoji:"🍔", price:129,
+   origin:"Global, enthusiastically adopted by India",
+   history:"The budget-friendly crowd-pleaser that spans every age group and mall food court in the land. The burger is old news worldwide, but India turned the humble veg patty into an art form of aloo, peas, and 'why is this so spicy?'. It is the safe order, the group order, the 'I'm not that hungry' order that somehow always gets finished first."},
+  {id:3, quirky:"Pizzapanti", real:"Margherita / Veg Pizza", cat:"Pizza", emoji:"🍕", price:299,
+   origin:"Naples, Italy",
+   history:"The go-to comfort meal for families and late-night cravings alike. Legend says the Margherita was named for an Italian queen and dressed in the colours of her flag. India promptly added corn, paneer, and a second layer of cheese, because subtlety was never the point. It is the dish most likely to be eaten cold from the box at breakfast, and nobody is ashamed."},
+  {id:4, quirky:"Kabhi Khushi Kabhi Butter Chicken", real:"Butter Chicken", cat:"North Indian", emoji:"🍗", price:279,
+   origin:"Delhi, India (1950s)",
+   history:"The rich, creamy North Indian indulgence that launched a thousand naans. Invented in a Delhi kitchen when someone tossed leftover tandoori chicken into a tomato-butter-cream gravy and accidentally created a global icon. It is the dish that people who 'don't eat spicy' order with total confidence, and the reason cream exists as far as most restaurants are concerned."},
+  {id:5, quirky:"Paneer Ho Toh Aisa", real:"Paneer Butter Masala", cat:"North Indian", emoji:"🧆", price:229,
+   origin:"Delhi, India",
+   history:"The top vegetarian curry pick for dinner across India's big cities — butter chicken's meat-free twin, born in the same buttery Delhi kitchens. Paneer itself is thousands of years old, but drowning it in silky tomato-cream sauce is a gloriously modern indulgence. It is the vegetarian's revenge: nobody at the table feels like they missed out."},
+  {id:6, quirky:"Idli Aayi, Milegi", real:"Idli", cat:"South Indian", emoji:"⚪", price:99,
+   origin:"South India",
+   history:"The soft, fluffy steamed cake that dominates the morning delivery charts. Made from fermented rice and lentil batter, idli is possibly the healthiest thing anyone orders on an app, which is exactly why it needs three chutneys and a lake of sambar to feel complete. Ancient, gentle, and quietly judging your other menu choices."},
+  {id:7, quirky:"Dal Makhani: Dostana", real:"Dal Makhani", cat:"North Indian", emoji:"🍲", price:239,
+   origin:"Punjab, India",
+   history:"A comforting, slow-cooked lentil favourite simmered overnight over dying embers — the show-off cousin of everyday dal, once reserved for weddings and guests you wanted to impress. The secret is time, butter, and cream, hiding inside what looks like a humble bowl. It has quietly ended more diets than any dessert on this menu."},
+  {id:8, quirky:"Chole Ke Peeche Kya Hai", real:"Chole Bhature", cat:"North Indian", emoji:"🫓", price:199,
+   origin:"Punjab / Delhi, India",
+   history:"A heavy, iconic breakfast-and-lunch item that behaves like a dare: a balloon of fried bread the size of your face paired with fiery chickpeas. Delhi's street vendors turned it into an art form, and finishing a full plate before noon is treated as a personality trait. Cardiologists have opinions; nobody is listening."},
+  {id:9, quirky:"Aloo Paratha Zindabad", real:"Aloo Paratha", cat:"North Indian", emoji:"🫓", price:119,
+   origin:"Punjab, India",
+   history:"The staple North Indian breakfast — a whole-wheat flatbread stuffed with spiced potato, shallow-fried, and served with butter melting on top and curd on the side. It is the taste of every Punjabi grandmother's kitchen and the reason 'just one more' is a lie told at breakfast tables nationwide."},
+  {id:10, quirky:"Samosa: Kal Ho Naa Ho", real:"Samosa", cat:"Snacks", emoji:"🔺", price:49,
+   origin:"Middle East / Central Asia, now wholly Indian",
+   history:"India's timeless fried snack — tens of millions consumed daily, undisputed king of the tea-time table. It travelled the Silk Road as the 'samsa' and settled permanently into Indian hearts and arteries. Triangular, crispy, and always slightly too hot to bite, it turns 'I'll just have one' into a life sentence."},
+  {id:11, quirky:"Mission: Momo-Possible", real:"Momos (Veg & Chicken)", cat:"Momos & Tibetan", emoji:"🥟", price:169,
+   origin:"Tibet & the Himalayas",
+   history:"Little steamed or fried dumplings that crossed the Himalayas and were promptly adopted by every Indian street corner, which then invented fifty chutneys the originals never asked for. What began as humble mountain food is now sold with a fiery red schezwan sauce that would make a Tibetan grandmother faint. Delicious treason, one bite at a time."},
+  {id:12, quirky:"Vada Pav Ki Baraat", real:"Vada Pav", cat:"Snacks", emoji:"🍔", price:59,
+   origin:"Mumbai, India",
+   history:"Mumbai's iconic street-food legend and the original 'burger' of the working city — a spiced potato fritter in a soft pav, armed with chutneys and a fried green chilli for the brave. Invented near Mumbai's railway stations to feed mill workers cheaply, it now fuels the entire city's commute. Small, mighty, and fiercely defended by every Mumbaikar alive."},
+  {id:13, quirky:"Roll No. 420", real:"Chicken Kathi Roll", cat:"Rolls & Frankies", emoji:"🌯", price:169,
+   origin:"Kolkata, India",
+   history:"The go-to on-the-go and late-night meal — skewered kebab wrapped in flaky paratha, invented in Kolkata for gentlemen who wanted kebabs without greasy hands. It has since conquered every midnight craving in the country. Portable, saucy, and the single most reliable friend you have at 2am."},
+  {id:14, quirky:"Fry & Furious", real:"French Fries", cat:"Fast Food", emoji:"🍟", price:99,
+   origin:"Belgium / France (disputed)",
+   history:"The frequent side and the go-to solo craving — the one item nobody plans to order and everybody ends up ordering. The Belgians and French still argue over who invented them; India settled the matter by adding peri-peri masala and moving on. Golden, salty, and gone before the main course arrives."},
+  {id:15, quirky:"Rang De Tandoori", real:"Tandoori Chicken", cat:"North Indian", emoji:"🍗", price:289,
+   origin:"Punjab, India",
+   history:"Juicy, yoghurt-marinated, and blasted in a searing clay tandoor until charred and dramatic. Popularised in the 1940s, it gets its theatrical red from chilli and a proud history of food colouring. Smoke, char, and maximum drama — it arrives sizzling and demands you stop the conversation to look at it."},
+  {id:16, quirky:"Chicken Fried Rice: Don", real:"Chicken Fried Rice", cat:"Indo-Chinese", emoji:"🍚", price:189,
+   origin:"Kolkata-style Indian-Chinese",
+   history:"A staple of Desi-Chinese cravings — a cuisine that exists nowhere in China and is beloved everywhere in India. Born from Chinese immigrant cooks in Kolkata improvising for Indian palates, it is soy-sauced, wok-tossed, and gloriously inauthentic. The default order for when the group can't agree on anything else."},
+  {id:17, quirky:"Nugget Nahi Milega", real:"Chicken Nuggets", cat:"Fast Food", emoji:"🍗", price:149,
+   origin:"United States (1950s)",
+   history:"A quick, universally loved snack and the great equaliser of picky eaters everywhere. The nugget was engineered in a food lab to be perfectly poppable, and India loves it with a side of schezwan mayo and zero questions asked. Crispy, uniform, and the safest bet on any late-night menu."},
+  {id:18, quirky:"Chicken Burger: Baazigar", real:"Chicken Burger", cat:"Fast Food", emoji:"🍔", price:169,
+   origin:"Global fast food",
+   history:"A popular late-night and fast-food order — the heartier, meatier cousin of the veg burger, stacked with a fried or grilled patty and a suspicious amount of mayo. It is the order placed with confidence at midnight and regretted with dignity the next morning. Reliable, indulgent, and never once described as 'light'."},
+  {id:19, quirky:"Gulab Jamun: Zindagi Na Milegi Dobara", real:"Gulab Jamun", cat:"Desserts", emoji:"🍮", price:99,
+   origin:"Persia / medieval India",
+   history:"The most popular traditional Indian dessert, ordered for every celebration and after-meal craving. Deep-fried milk-solid dumplings soaked in rose-scented syrup, its name means 'rose berry' in Persian. It is physically impossible to eat just one — confirmed by every wedding buffet in recorded history. Warm, sticky, and utterly unbothered by your resolutions."},
+];
+
+const RESTAURANTS=[
+  {id:0,name:"Biryani By Kilo-Meter",tagline:"Biryani, sold by the memory",intro:"Founded by a man who believed biryani should be weighed like gold, Biryani By Kilo-Meter serves portions 'large enough to settle family disputes'. Please enjoy browsing while we pretend the kitchen isn't on fire with orders."},
+  {id:1,name:"The Naan-Sense Kitchen",tagline:"Serious North Indian. Some naan.",intro:"The Naan-Sense Kitchen prides itself on gravies so rich they require a lie-down afterwards. Our chefs trained under someone's aunt who was 'very strict'. We thank you for your patience as you scroll past everything you didn't come here for."},
+  {id:2,name:"Dosa-n't Stop Believin'",tagline:"South Indian, on loop",intro:"At Dosa-n't Stop Believin', the batter is fermented, the coffee is filtered, and the wait is character-building. We've been told our dosas are 'longer than the queue', which we take as the highest compliment."},
+  {id:3,name:"Munna Bhai Fast Food",tagline:"Burgers, fries & good intentions",intro:"Munna Bhai Fast Food operates on one principle: everything is better fried and slightly too large. Our founder's philosophy — 'apun ko bhookh lagi hai' — guides every menu decision. Enjoy the scenic route to your snack."},
+  {id:4,name:"Gobi Wan Kenobi",tagline:"Indo-Chinese from a galaxy far away",intro:"Gobi Wan Kenobi brings you the noble art of Indian-Chinese cooking, a cuisine invented in Kolkata and beloved nowhere in actual China. Our wok has seen things. May the sauce be with you as you browse at length."},
+  {id:5,name:"Frankie Goes To Bandra",tagline:"Rolls, wraps & Mumbai attitude",intro:"Frankie Goes To Bandra rolls everything — kebabs, paneer, your patience — into a warm paratha. Born on a Mumbai street corner, raised on hustle. We appreciate you taking the long way to lunch."},
+  {id:6,name:"Chaat The Point",tagline:"Street snacks with commitment issues",intro:"Chaat The Point serves snacks that are 90% emotion and 10% tamarind. Our vendors have perfected the art of 'thoda aur' since forever. Please continue scrolling; the point is somewhere further down."},
+  {id:7,name:"Momo Magic Circle",tagline:"Dumplings & Himalayan calm",intro:"Momo Magic Circle folds each dumpling by hand and each excuse by heart. Straight from the mountains to your doorstep, eventually. We invite you to enjoy the meditative wait we've prepared for you."},
+  {id:8,name:"Halwa True Love",tagline:"Mithai & zero regrets",intro:"Halwa True Love believes dessert is not a course but a lifestyle. Our sweets are soaked, syruped, and slightly excessive, exactly as tradition demands. Take your time — sugar waits for no one, but our checkout does."},
+  {id:9,name:"Curry On Regardless",tagline:"Everything, everywhere, all at once",intro:"Curry On Regardless couldn't pick a lane, so it took all of them. Biryani? Yes. Pizza? Somehow. Momos? Don't ask. We are proud generalists and thank you for your considerable patience."},
+];
+
+function makeRng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function assignDishes(seed){
+  const rng=makeRng(seed);
+  RESTAURANTS.forEach(r=>{
+    const count=5+Math.floor(rng()*16);
+    const pool=DISHES.map(d=>d.id);
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    r.dishIds=pool.slice(0,count).sort((a,b)=>a-b);
+  });
+  DISHES.forEach(d=>{ if(!RESTAURANTS.some(r=>r.dishIds.includes(d.id))){ const r=RESTAURANTS[Math.floor(rng()*RESTAURANTS.length)]; r.dishIds.push(d.id); r.dishIds.sort((a,b)=>a-b);} });
+}
+function buildDishIndex(){const idx={};DISHES.forEach(d=>idx[d.id]=[]);RESTAURANTS.forEach(r=>r.dishIds.forEach(id=>idx[id].push(r.id)));return idx;}
+const dishById=id=>DISHES.find(d=>d.id===id);
+
+// build search dictionary from real names + a few aliases
+const DISH_DICT={};
+DISHES.forEach(d=>{ DISH_DICT[d.real.toLowerCase()]=d.id; DISH_DICT[d.quirky.toLowerCase()]=d.id; });
+const ALIASES={"biryani":0,"chicken biryani":0,"dosa":1,"masala dosa":1,"burger":2,"veg burger":2,"pizza":3,"margherita":3,"butter chicken":4,"paneer":5,"paneer butter masala":5,"idli":6,"dal makhani":7,"dal":7,"chole bhature":8,"chole":8,"aloo paratha":9,"paratha":9,"samosa":10,"momo":11,"momos":11,"vada pav":12,"vadapav":12,"kathi roll":13,"roll":13,"frankie":13,"fries":14,"french fries":14,"tandoori chicken":15,"tandoori":15,"fried rice":16,"chicken fried rice":16,"nuggets":17,"chicken nuggets":17,"chicken burger":18,"gulab jamun":19,"jamun":19,"dessert":19,"sweet":19};
+Object.assign(DISH_DICT,ALIASES);
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const M={
+  page:"splash", taps:0, startTime:null, seed:Math.floor(Math.random()*1e9),
+  user:{name:"",phone:"",cc:"+379",flag:"🇻🇦",addr:{a:"",b:"",c:"",d:""}},
+  cart:[], memorizedCode:"", codeMsg:"",
+  listSearchShown:false, activeResto:0, activeDish:0, searchAttempt:0,
+  checkoutTries:0,
+  dishIndex:{},
+  pastOrders:[
+    ["Biryani By Kilo-Meter","Dilwale Biryani Le Jaayenge × 1","₹336","2 days ago"],
+    ["Momo Magic Circle","Mission: Momo-Possible × 2","₹410","last week"],
+    ["Halwa True Love","Gulab Jamun: ZNMD × 3","₹289","3 weeks ago"],
+  ],
+};
+assignDishes(M.seed); M.dishIndex=buildDishIndex();
+
+function tap(){M.taps++;}
+function nav(p){tap();M.page=p;try{screen.scrollTo(0,0)}catch(e){}render();}
+function toast(msg,ms=2600){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.getElementById("phone").appendChild(t);setTimeout(()=>t.remove(),ms);}
+function money(n){return "₹"+n;}
+function cartCount(){return M.cart.reduce((s,i)=>s+i.qty,0);}
+function cartSubtotal(){return M.cart.reduce((s,i)=>s+i.price*i.qty,0);}
+function avatar(){return `<div class="avatar" onclick="nav('profile')">👤</div>`;}
+function orbitTile(emoji,size){return `<div class="dishframe" style="width:${size}px;height:${size}px;border-radius:14px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px"><span class="pulse">${emoji}</span><span class="orbit" style="animation-duration:5s">✨</span><span class="orbit" style="animation-duration:7s;animation-delay:-2s">🔥</span></div>`;}
+
+/* ============================================================
+   SPLASH
+   ============================================================ */
+function splash(){
+  screen.innerHTML=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--red),var(--red-deep));color:#fff">
+    <div class="fadein" style="text-align:center">
+      <div style="font-size:15px;letter-spacing:6px;opacity:.85;font-weight:600">ZESTO</div>
+      <div style="font-size:40px;margin-top:8px" class="bob">🍜</div>
+      <div style="margin-top:26px;width:200px;height:6px;background:rgba(255,255,255,.25);border-radius:6px;overflow:hidden"><div id="bar" style="height:100%;width:0;background:#fff;border-radius:6px;transition:width .4s"></div></div>
+      <div id="loadtxt" style="font-size:12px;margin-top:14px;opacity:.85">Preparing your experience…</div>
+    </div></div>`;
+  const bar=document.getElementById("bar"),txt=document.getElementById("loadtxt");
+  const seq=[20,48,76,100,0,34,68,100];let i=0;
+  const tick=()=>{if(i>=seq.length){M.startTime=Date.now();nav("address");return;}const p=seq[i];bar.style.width=p+"%";if(p===100&&i<4)txt.textContent="Almost there…";else if(p===0)txt.textContent="Just a moment, optimising…";else if(i>=5)txt.textContent="Finalising the finishing touches…";i++;setTimeout(tick,p===0?520:640);};
+  setTimeout(tick,500);
+}
+
+/* ============================================================
+   PAGE I — ADDRESS
+   ============================================================ */
+function address(){
+  const a=M.user.addr;
+  screen.innerHTML=`<div class="topbar"><div style="font-weight:800;font-size:16px">Add delivery details</div>${avatar()}</div>
+  <div style="padding:16px 18px 8px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7)"><div style="font-size:13px;color:#7a1523;font-weight:600">📍 We found you near Udyog Vihar.</div></div>
+  <div style="padding:16px 18px 40px">
+    <div style="font-size:18px;font-weight:800">Where should we deliver?</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">We've located you — now please add your full address. Each field needs at least 6 characters.</div>
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.4px;margin:18px 0 8px">MOBILE NUMBER</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="openCC()" style="flex:none;background:var(--field);border-radius:12px;padding:14px 12px;font-size:15px;display:flex;align-items:center;gap:6px"><span>${M.user.flag}</span><span>${M.user.cc}</span><span style="color:var(--sub);font-size:12px">▾</span></button>
+      <input class="field" placeholder="Mobile number" inputmode="numeric" value="${M.user.phone}" oninput="M.user.phone=this.value.replace(/\\D/g,'').slice(0,10)" />
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.4px;margin:20px 0 8px">ADDRESS</div>
+    <input class="field" style="margin-bottom:10px" placeholder="a. Flat / House no. (min 6 chars)" value="${a.a}" oninput="M.user.addr.a=this.value" />
+    <input class="field" style="margin-bottom:10px" placeholder="b. Building / Street (min 6 chars)" value="${a.b}" oninput="M.user.addr.b=this.value" />
+    <input class="field" style="margin-bottom:10px" placeholder="c. Area / Landmark (min 6 chars)" value="${a.c}" oninput="M.user.addr.c=this.value" />
+    <input class="field" placeholder="d. PIN code (6 digits)" inputmode="numeric" value="${a.d}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6);M.user.addr.d=this.value" />
+    <button class="btn" style="margin-top:22px" onclick="saveAddress()">Save & see restaurants</button>
+  </div>`;
+}
+function saveAddress(){
+  tap();
+  if(M.user.cc!=="+91"){toast("Your location seems to be in India — please select India (+91) as your country code to continue.",3400);return;}
+  const a=M.user.addr;
+  if((a.a||"").length<6){toast("Field a needs at least 6 characters.");return;}
+  if((a.b||"").length<6){toast("Field b needs at least 6 characters.");return;}
+  if((a.c||"").length<6){toast("Field c needs at least 6 characters.");return;}
+  if((a.d||"").length!==6){toast("Please enter a valid 6-digit PIN code.");return;}
+  nav("list");
+}
+
+/* ============================================================
+   PAGE II — BROWSE (search hidden until Options/Restaurants)
+   ============================================================ */
+function list(){
+  screen.innerHTML=`<div class="topbar">
+    ${M.listSearchShown?`<div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px" onclick="nav('search')"><span>🔍</span><span style="color:var(--sub);font-size:14px">Search dishes</span></div>`:`<div style="font-weight:800;font-size:16px">Browse</div>`}
+    <div style="margin-left:12px">${avatar()}</div></div>
+  <div style="padding:16px 18px 100px">
+    ${!M.listSearchShown?`<div class="muted" style="font-size:12px;margin-bottom:12px">Tap Options or Restaurants to begin.</div>`:``}
+    <div class="cardbox">
+      ${[["🍛 Options (all dishes)","options"],["🍽️ Restaurants","restaurants"],["🎟️ Codes & offers","codes"]].map((x,i)=>`<div class="row" onclick="listTap('${x[1]}')" style="padding:16px 14px;${i<2?'border-bottom:1px solid var(--line)':''};cursor:pointer"><div style="font-size:15px;font-weight:600">${x[0]}</div><span style="color:var(--sub)">›</span></div>`).join("")}
+    </div>
+    <div style="margin-top:22px;font-size:14px;font-weight:800">Today's offers</div>
+    <div class="muted" style="font-size:12px;margin-top:2px">Note the codes down — you'll type them yourself later.</div>
+    ${[["ZESTO60","60% off up to ₹120"],["FREEDEL399","Free delivery over ₹399"],["BINGE250","Flat ₹250 off over ₹899"]].map(c=>`<div class="cardbox" style="margin-top:10px;padding:14px"><div style="font-size:15px;font-weight:800;letter-spacing:.5px">${c[0]}</div><div style="font-size:12.5px;color:var(--sub);margin-top:3px">${c[1]}</div><div style="text-align:right"><span style="font-size:11px;color:var(--amber);font-weight:600">no copy button — memorise it</span></div></div>`).join("")}
+  </div>`;
+}
+function listTap(which){
+  tap();
+  if(which==="codes"){openCodes();return;}
+  M.listSearchShown=true;
+  if(which==="options"){M.page="options";render();return;}
+  if(which==="restaurants"){M.page="restolist";render();return;}
+}
+function openCodes(){showSheet(`<div class="sheet-pad"><div style="font-size:16px;font-weight:800">Offer codes</div><div style="font-size:12.5px;color:var(--sub);margin-top:6px">Please remember these. They can only be typed manually at the cart.</div>${["ZESTO60","FREEDEL399","BINGE250"].map(c=>`<div style="margin-top:12px;font-size:16px;font-weight:800;letter-spacing:1px">${c}</div>`).join("")}<button class="btn" style="margin-top:20px" onclick="closeSheet()">Got it (I'll remember)</button></div>`);}
+
+/* ============================================================
+   OPTIONS — grid of all 20 dishes; tap -> "available at" list
+   ============================================================ */
+function options(){
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('list')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">All dishes</div>${avatar()}</div>
+  <div style="padding:16px 18px 100px">
+    <div class="muted" style="font-size:12px;margin-bottom:14px">${DISHES.length} dishes · tap one to find where it's available</div>
+    <div class="grid">
+      ${DISHES.map(d=>`<div onclick="pickDish(${d.id})" style="text-align:center;cursor:pointer">
+        ${orbitTile(d.emoji,84).replace('width:84px','width:100%').replace('height:84px','height:84px')}
+        <div style="font-size:11px;font-weight:600;margin-top:8px;line-height:1.25">${d.quirky}</div>
+        <div style="font-size:10px;color:var(--sub);margin-top:2px">${d.real}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+function pickDish(id){
+  tap();
+  const restos=M.dishIndex[id]||[];
+  const d=dishById(id);
+  showSheet(`<div class="sheet-pad" style="max-height:100%;overflow-y:auto">
+    <div style="font-size:16px;font-weight:800">${d.quirky}</div>
+    <div style="font-size:12px;color:var(--sub);margin-top:2px">${d.real} · available at ${restos.length} place${restos.length>1?'s':''}</div>
+    <div style="margin-top:14px">
+      ${restos.map(rid=>{const r=RESTAURANTS[rid];return `<div class="row" onclick="openRestoForDish(${rid},${id})" style="padding:14px 4px;border-bottom:1px solid var(--line);cursor:pointer">
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:10px;background:var(--red-soft);display:flex;align-items:center;justify-content:center;font-size:18px">${d.emoji}</div>
+        <div><div style="font-size:14px;font-weight:700">${r.name}</div><div style="font-size:11.5px;color:var(--sub)">${r.tagline}</div></div></div>
+        <span style="color:var(--sub)">›</span></div>`;}).join("")}
+    </div>
+    <div style="font-size:11.5px;color:var(--sub);margin-top:12px">Pick a place to continue. (You'll see its intro first.)</div>
+  </div>`);
+}
+function openRestoForDish(rid,dishId){ tap(); M.activeResto=rid; M.pendingDish=dishId; closeSheet(); M.page="restointro"; render(); }
+
+/* ============================================================
+   RESTAURANT LIST + INTRO + MENU
+   ============================================================ */
+function restolist(){
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('list')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">Restaurants near you</div>${avatar()}</div>
+  <div style="padding:14px 18px 100px">
+    <div class="muted" style="font-size:12px;margin-bottom:10px">${RESTAURANTS.length} places · tap one to see its menu</div>
+    ${RESTAURANTS.map((r,i)=>`<div class="cardbox" onclick="openResto(${r.id})" style="margin-bottom:12px;cursor:pointer">
+      <div style="height:96px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:34px" class="dishframe"><span class="pulse">${dishById(r.dishIds[0]).emoji}</span><span class="orbit" style="animation-duration:${5+i%3}s">✨</span></div>
+      <div style="padding:12px 14px">
+        <div class="row"><div style="font-size:15px;font-weight:700">${r.name}</div><div style="background:var(--green);color:#fff;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px">★ ${(4+i%6/10).toFixed(1)}</div></div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${r.tagline}</div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:6px">⏱ ${25+i%20}–${30+i%20} min · ${r.dishIds.length} dishes</div>
+      </div></div>`).join("")}
+  </div>`;
+}
+function openResto(id){ tap(); M.activeResto=id; M.pendingDish=null; M.page="restointro"; render(); }
+
+// restaurant INTRODUCTION shown before the menu
+function restointro(){
+  const r=RESTAURANTS[M.activeResto];
+  screen.innerHTML=`<div class="topbar"><span onclick="nav(M.pendingDish!=null?'options':'restolist')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">${r.name}</div>${avatar()}</div>
+  <div style="height:160px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:48px" class="dishframe"><span class="pulse">${dishById(r.dishIds[0]).emoji}</span><span class="orbit">✨</span><span class="orbit" style="animation-delay:-3s">🔥</span></div>
+  <div style="padding:18px 20px 40px">
+    <div style="font-size:22px;font-weight:800">${r.name}</div>
+    <div style="font-size:13px;color:var(--red);font-weight:600;margin-top:4px">${r.tagline}</div>
+    <div style="margin-top:14px;background:var(--poppy-bg);border:1px solid #f2e08a;border-radius:14px;padding:14px">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:#8a6d00">☀️ ABOUT THIS RESTAURANT</div>
+      <div style="font-size:13.5px;line-height:1.65;color:#5c4a00;margin-top:6px">${r.intro}</div>
+    </div>
+
+    <div onclick="openRestoStory()" class="cardbox" style="margin-top:14px;padding:16px;cursor:pointer;border:1.5px solid var(--red);background:var(--red-soft)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:24px" class="bob">📖</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:800;color:var(--red)">Before we order, let's learn about this place</div>
+          <div style="font-size:12px;color:#7a1523;margin-top:3px">Its history, its heritage, and its remarkable contribution to society. A must-read. ✨</div>
+        </div>
+        <span style="color:var(--red);font-size:18px" class="blink">›</span>
+      </div>
+    </div>
+
+    <div style="font-size:12.5px;color:var(--sub);margin-top:16px;line-height:1.5">⏱ Delivery in ${25+M.activeResto%20}–${30+M.activeResto%20} min · ★ ${(4+M.activeResto%6/10).toFixed(1)} · ${r.dishIds.length} dishes on the menu</div>
+    <button class="btn" style="margin-top:22px" onclick="nav('restaurant')">${M.pendingDish!=null?'View the menu & your dish':'See full menu'}</button>
+  </div>`;
+}
+function openRestoStory(){
+  const r=RESTAURANTS[M.activeResto];
+  showSheet(`<div class="sheet-pad" style="max-height:100%;overflow-y:auto">
+    <div style="font-size:16px;font-weight:800">The story of ${r.name}</div>
+    <div style="font-size:13px;line-height:1.7;color:var(--ink);margin-top:12px">
+      ${r.intro}
+    </div>
+    <div style="font-size:13px;line-height:1.7;color:var(--sub);margin-top:12px">
+      What began as a single humble kitchen has, over the years, become a cornerstone of the neighbourhood — feeding students during exams, families during festivals, and heartbroken souls at 2am who needed something warm. It is said the founder once fed an entire wedding for free when the caterer vanished, and has never let anyone leave hungry since.
+    </div>
+    <div style="font-size:13px;line-height:1.7;color:var(--sub);margin-top:12px">
+      Beyond the food, ${r.name} has quietly given back: sponsoring local cricket teams, employing three generations of the same family, and donating leftover meals to those in need every single night. To eat here is not merely to order dinner. It is to participate in something larger than yourself.
+    </div>
+    <div style="font-size:12px;color:var(--sub);margin-top:14px;font-style:italic">You have now spent a meaningful amount of time not ordering food. Thank you.</div>
+    <button class="btn" style="margin-top:18px" onclick="closeSheet()">Beautiful. Now show me the menu</button>
+  </div>`);
+}
+
+function restaurant(){
+  const r=RESTAURANTS[M.activeResto];
+  const dishes=r.dishIds.map(dishById);
+  const top=dishes.slice(0,2);
+  // if we came from a dish tap, highlight that dish first
+  const highlightId=M.pendingDish;
+  const ordered = highlightId!=null ? [dishById(highlightId), ...dishes.filter(d=>d.id!==highlightId)] : dishes;
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('restointro')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">${r.name}</div>${avatar()}</div>
+  <div style="padding:14px 18px;border-bottom:8px solid var(--field)">
+    <div style="font-size:20px;font-weight:800">${r.name}</div>
+    <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${r.tagline}</div>
+    <div class="marquee" style="margin-top:8px;color:var(--red);font-size:11.5px"><b>🔥 3 people ordering right now · ⭐ Bestseller in Colaba · 🚚 Fast delivery · 🎉 New on Zesto · </b></div>
+  </div>
+  ${highlightId!=null?`<div style="padding:12px 18px 0"><div class="muted" style="font-size:12px">Here's what you searched for — plus everything else first:</div></div>`:`
+  <div style="padding:14px 18px 4px"><div style="font-size:14px;font-weight:800">Top-selling</div><div class="muted" style="font-size:12px;margin-top:2px">Only 2 shown. Full menu below.</div>${top.map(d=>dishRow(d,true)).join("")}</div>`}
+  <div style="padding:10px 18px 110px">
+    <div style="font-size:14px;font-weight:800;margin-top:6px">Full menu · ${dishes.length} items</div>
+    ${ordered.map(d=>dishRow(d,false)).join("")}
+  </div>`;
+}
+function dishRow(d,isTop){
+  return `<div class="cardbox" onclick="M.activeDish=${d.id};nav('dish')" style="margin-top:12px;padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer">
+    ${orbitTile(d.emoji,56)}
+    <div style="flex:1"><div style="font-size:15px;font-weight:700">${d.quirky} ${isTop?`<span class="pill blink" style="background:var(--red-soft);color:var(--red);font-size:10px;margin-left:4px">TOP SELLER</span>`:""}</div><div style="font-size:11.5px;color:var(--sub);margin-top:2px">${d.real}</div><div style="font-size:14px;font-weight:700;margin-top:4px">${money(d.price)}</div></div>
+    <span style="color:var(--sub)">›</span></div>`;
+}
+
+/* ============================================================
+   SEARCH (works, but breaks on first try with an Oops)
+   ============================================================ */
+function search(){
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('list')" style="font-size:22px;cursor:pointer">‹</span>
+    <div style="flex:1;margin:0 10px;display:flex;align-items:center;gap:8px;background:var(--field);border-radius:12px;padding:11px 13px"><span>🔍</span><input id="sq" class="field" style="padding:0;background:transparent;font-size:14px" placeholder="Search any dish — try 'biryani'" onkeydown="if(event.key==='Enter')runSearch()" /></div>${avatar()}</div>
+  <div style="padding:14px 18px 4px"><button class="btn" onclick="runSearch()">Search</button><div id="smsg" style="font-size:13px;margin-top:12px;min-height:18px"></div><div id="sresults" style="margin-top:6px"></div></div>`;
+  document.getElementById("sq").focus?.();
+}
+function runSearch(){
+  tap();
+  const q=(document.getElementById("sq").value||"").trim().toLowerCase();
+  const msg=document.getElementById("smsg"),box=document.getElementById("sresults");box.innerHTML="";
+  if(!q){msg.style.color="var(--sub)";msg.textContent="Type something first.";return;}
+  msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Searching…`;
+  setTimeout(()=>{
+    M.searchAttempt++;
+    if(M.searchAttempt===1){msg.style.color="var(--red)";msg.innerHTML=`😅 Oops! Search hiccuped and couldn't fetch results. Please tap Search once more.`;return;}
+    const id=resolveDish(q);
+    if(id===null){
+      const sugg=suggest(q);
+      msg.style.color="var(--red)";msg.innerHTML=`🤔 We couldn't find “${escapeHtml(q)}”.`;
+      box.innerHTML=`${sugg.length?`<div style="font-size:12.5px;color:var(--sub);margin:8px 0 6px">Did you mean:</div><div style="display:flex;gap:8px;flex-wrap:wrap">${sugg.map(s=>`<span class="pill" onclick="document.getElementById('sq').value='${s}';runSearch()">${s}</span>`).join("")}</div>`:""}<button class="btn btn-outline" style="margin-top:14px" onclick="nav('options')">Browse all dishes instead</button>`;
+      return;
+    }
+    const d=dishById(id);const restos=M.dishIndex[id];
+    msg.style.color="var(--green)";msg.innerHTML=`Found it — served here as “${d.quirky}”. (${d.real})`;
+    box.innerHTML=`<div class="cardbox fadein" onclick="pickDish(${id})" style="margin-top:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;cursor:pointer">${orbitTile(d.emoji,56)}<div style="flex:1"><div style="font-size:14px;font-weight:700">${d.quirky}</div><div style="font-size:12px;color:var(--sub);margin-top:2px">Available at ${restos.length} place${restos.length>1?'s':''} · tap to choose</div></div><span style="color:var(--sub)">›</span></div>`;
+  },1300);
+}
+function resolveDish(q){
+  if(DISH_DICT.hasOwnProperty(q))return DISH_DICT[q];
+  for(const k in DISH_DICT){if(k.includes(q)||q.includes(k))return DISH_DICT[k];}
+  for(const d of DISHES){if(d.real.toLowerCase().includes(q)||d.quirky.toLowerCase().includes(q))return d.id;}
+  return null;
+}
+function suggest(q){const keys=Object.keys(DISH_DICT);const scored=keys.map(k=>[k,sim(k,q)]).sort((a,b)=>b[1]-a[1]);return [...new Set(scored.filter(s=>s[1]>0).slice(0,4).map(s=>s[0]))];}
+function sim(a,b){const A=new Set(a.replace(/\s/g,"")),B=new Set(b.replace(/\s/g,""));let c=0;A.forEach(x=>{if(B.has(x))c++;});return c;}
+function escapeHtml(s){return s.replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+
+/* ============================================================
+   DISH DETAIL (origin -> poppy history -> ingredients)
+   ============================================================ */
+function dish(){
+  const d=dishById(M.activeDish)||DISHES[0];
+  const ing=INGREDIENTS[d.id]||["Chef's spices","Fresh produce","A pinch of drama","Served hot"];
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('restaurant')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">${d.quirky}</div>${avatar()}</div>
+  <div class="screen" style="padding:0">
+    <div style="height:180px;background:linear-gradient(135deg,#f5d0d6,#f8e3e7);display:flex;align-items:center;justify-content:center;font-size:56px" class="dishframe"><span class="pulse">${d.emoji}</span><span class="orbit" style="animation-duration:5s">✨</span><span class="orbit" style="animation-duration:6s;animation-delay:-2s">🔥</span><span class="orbit" style="animation-duration:8s;animation-delay:-4s">😋</span></div>
+    <div style="padding:12px 18px 4px;display:flex;gap:8px;overflow-x:auto">${["Spice level","Portion","Add-ons","Toppings","Cutlery","Packaging"].map(f=>`<span class="filtchip">${f} ▾</span>`).join("")}</div>
+    <div style="padding:10px 18px 4px">
+      <div style="font-size:18px;font-weight:800">${d.quirky}</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:2px">${d.real}</div>
+      <div style="font-size:14px;font-weight:700;margin-top:6px">${money(d.price)}</div>
+      <div style="margin-top:14px;font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--sub)">ORIGIN</div>
+      <div style="font-size:13.5px;margin-top:4px">${d.origin}</div>
+      <div style="margin-top:14px;background:var(--poppy-bg);border:1px solid #f2e08a;border-radius:14px;padding:14px">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:#8a6d00">☀️ THE HISTORY</div>
+        <div style="font-size:13.5px;line-height:1.65;color:#5c4a00;margin-top:6px">${d.history}</div>
+      </div>
+      <div style="margin-top:16px;font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--sub)">WHAT'S ACTUALLY IN IT</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${ing.map(x=>`<span class="pill">${x}</span>`).join("")}</div>
+    </div>
+    <div style="padding:14px 18px 120px">
+      <div style="font-size:13px;font-weight:800">Popular right now</div>
+      <div style="display:flex;gap:10px;overflow-x:auto;margin-top:8px">${["Ordered 42× today","Trending in Colaba","Chef's special","Almost sold out"].map(t=>`<div class="cardbox" style="flex:none;width:150px;padding:12px;font-size:12px">${t} 🔥</div>`).join("")}</div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)"><button class="btn" onclick="openAddSheet()">Add to cart</button></div>`;
+}
+const INGREDIENTS={
+  0:["Basmati rice","Chicken","Yoghurt","Fried onions","Saffron","Whole spices"],
+  1:["Rice batter","Urad dal","Potato","Mustard seeds","Curry leaves"],
+  2:["Potato patty","Bun","Lettuce","Tomato","Mayo"],
+  3:["Pizza base","Mozzarella","Tomato sauce","Basil","Corn"],
+  4:["Chicken","Tomato","Butter","Cream","Cashew paste","Kasuri methi"],
+  5:["Paneer","Tomato","Butter","Cream","Cashew","Kasuri methi"],
+  6:["Rice batter","Urad dal","Fenugreek","Salt"],
+  7:["Black urad dal","Rajma","Butter","Cream","Tomato"],
+  8:["Chickpeas","Refined flour","Onion","Amchur","Chole masala"],
+  9:["Wheat flour","Potato","Green chilli","Coriander","Butter"],
+  10:["Refined flour","Potato","Peas","Cumin","Spices"],
+  11:["Refined flour","Cabbage","Carrot","Ginger","Soy sauce"],
+  12:["Potato","Pav","Gram flour","Green chutney","Garlic chutney"],
+  13:["Paratha","Chicken kebab","Onion","Mint chutney"],
+  14:["Potato","Salt","Oil","Peri-peri masala"],
+  15:["Chicken","Yoghurt","Red chilli","Ginger-garlic","Lemon"],
+  16:["Rice","Chicken","Soy sauce","Spring onion","Garlic"],
+  17:["Chicken","Breadcrumbs","Flour","Spices"],
+  18:["Chicken patty","Bun","Lettuce","Cheese","Mayo"],
+  19:["Milk solids (khoya)","Flour","Sugar syrup","Rose water","Cardamom"],
+};
+function openAddSheet(){tap();const d=dishById(M.activeDish);showSheet(`<div class="sheet-pad"><div style="font-size:16px;font-weight:800">Add “${d.quirky}”</div><div style="font-size:12.5px;color:var(--sub);margin-top:4px">Which meal is this for?</div><div style="display:flex;gap:8px;margin-top:14px">${["Lunch","Dinner","Later"].map(m=>`<button class="pill" style="flex:1;padding:12px 0" onclick="addStep2()">${m}</button>`).join("")}</div></div>`);}
+function addStep2(){tap();const d=dishById(M.activeDish);showSheet(`<div class="sheet-pad"><div style="font-size:16px;font-weight:800">Confirm quantity</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px"><span style="font-size:14px">${d.quirky}</span><div style="display:flex;align-items:center;gap:26px"><button style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--sub)">–</button><span style="font-weight:700">1</span><button style="width:34px;height:34px;border-radius:8px;background:var(--field);font-size:18px;color:var(--red)">+</button></div></div><button class="btn" style="margin-top:20px" onclick="addStep3()">Confirm quantity: 1</button></div>`);}
+function addStep3(){tap();showSheet(`<div class="sheet-pad" style="text-align:center"><div style="font-size:34px" class="bob">✅</div><div style="font-size:16px;font-weight:800;margin-top:8px">Added to cart</div><div style="font-size:12.5px;color:var(--sub);margin-top:4px">Would you like to add another item?</div><div style="display:flex;gap:10px;margin-top:18px"><button class="btn btn-outline" onclick="finishAdd(true)">Add more</button><button class="btn" onclick="finishAdd(false)">Go to cart</button></div></div>`);}
+function finishAdd(more){tap();const d=dishById(M.activeDish);const ex=M.cart.find(i=>i.name===d.quirky);if(ex)ex.qty++;else M.cart.push({name:d.quirky,price:d.price,qty:1});closeSheet();if(more){M.page="restaurant";render();}else{M.page="cart";render();}}
+
+/* ============================================================
+   CART
+   ============================================================ */
+function cart(){
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('restaurant')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">Your cart</div>${avatar()}</div>
+  <div style="padding:16px 18px 120px">
+    <div class="cardbox" style="padding:6px 14px">${M.cart.map(i=>`<div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div style="font-size:14px">${i.name} <span class="muted">× ${i.qty}</span></div><div style="font-size:14px;font-weight:600">${money(i.price*i.qty)}</div></div>`).join("")||'<div class="muted" style="padding:16px;text-align:center">Cart empty</div>'}</div>
+    <div style="margin-top:16px;display:flex;gap:10px"><input id="promo" class="field" placeholder="Type the code you memorised" oninput="M.memorizedCode=this.value.toUpperCase()" value="${M.memorizedCode}" /><button class="btn" style="width:auto;padding:0 18px;margin:0" onclick="applyCode()">Apply</button></div>
+    <div id="codemsg" style="font-size:12.5px;margin-top:8px;min-height:16px;color:var(--sub)">${M.codeMsg}</div>
+    <div class="cardbox" style="margin-top:16px;padding:14px"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Bill summary</div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Item total</span><span>${money(cartSubtotal())}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Delivery fee</span><span>${money(39)}</span></div>
+      <div class="row" style="padding:5px 0;font-size:13.5px"><span class="muted">Taxes & charges</span><span>${money(48)}</span></div>
+      <div style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px" class="row"><span style="font-weight:800">To pay</span><span style="font-weight:800">${money(cartSubtotal()+87)}</span></div></div>
+  </div>
+  <div style="position:sticky;bottom:0;padding:14px 18px;background:#fff;border-top:1px solid var(--line)"><button class="btn" onclick="placeOrder()">Place order</button></div>`;
+}
+function applyCode(){tap();const msg=document.getElementById("codemsg");const c=(M.memorizedCode||"").trim();if(!c){toast("Enter the code you memorised earlier.");return;}msg.innerHTML=`<span class="spin" style="width:14px;height:14px;border-width:2px"></span> Checking…`;setTimeout(()=>{if(c==="ZESTO60"||c==="FREEDEL399"||c==="BINGE250"){msg.style.color="var(--green)";msg.textContent="Code accepted! …but minimum order not met — no discount applied.";}else{msg.style.color="var(--red)";msg.textContent="That code isn't valid. Did you remember it correctly?";}},1200);}
+
+/* ============================================================
+   CHECKOUT — delivery-address hurdle, then order confirmation
+   ============================================================ */
+function placeOrder(){
+  tap();
+  M.checkoutTries++;
+  if(M.checkoutTries===1){ M.page="deliveryissue"; render(); return; }  // first time: address problem
+  M.page="orderconfirm"; render();                                       // after re-confirm: it goes through
+}
+function deliveryissue(){
+  const a=M.user.addr;const full=[a.a,a.b,a.c,a.d].filter(x=>x).join(", ")||"your saved address";
+  const r=RESTAURANTS[M.activeResto];
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('cart')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">Confirm delivery</div>${avatar()}</div>
+  <div style="padding:24px 20px 40px">
+    <div style="text-align:center;font-size:40px">📍</div>
+    <div style="text-align:center;font-size:18px;font-weight:800;margin-top:10px">Hmm, a small hiccup on our side</div>
+    <div style="text-align:center;font-size:13.5px;color:var(--sub);margin-top:8px;line-height:1.6">
+      <b>${r.name}</b> may not deliver to <b>${full}</b> right now. This is likely an issue on our end, not yours.
+      Please re-confirm your address below and we'll try again.
+    </div>
+    <div class="cardbox" style="margin-top:20px;padding:14px">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--sub)">DELIVERING TO</div>
+      <input class="field" style="margin-top:10px" value="${a.a}" placeholder="Flat / House no." oninput="M.user.addr.a=this.value" />
+      <input class="field" style="margin-top:10px" value="${a.b}" placeholder="Building / Street" oninput="M.user.addr.b=this.value" />
+      <input class="field" style="margin-top:10px" value="${a.d}" placeholder="PIN code" inputmode="numeric" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,6);M.user.addr.d=this.value" />
+    </div>
+    <button class="btn" style="margin-top:20px" onclick="retryDelivery()">Re-confirm & place order</button>
+    <div style="text-align:center;margin-top:12px"><span onclick="nav('help')" style="font-size:12.5px;color:var(--red);cursor:pointer">Need help? Contact support</span></div>
+  </div>`;
+}
+function retryDelivery(){ tap(); const a=M.user.addr; if((a.d||"").length!==6){toast("Please confirm a valid 6-digit PIN code.");return;} M.page="orderconfirm"; render(); }
+
+function orderconfirm(){
+  const r=RESTAURANTS[M.activeResto];
+  screen.innerHTML=`<div style="padding:30px 22px 40px" class="fadein">
+    <div style="text-align:center">
+      <div style="width:60px;height:60px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto" class="bob">✓</div>
+      <div style="font-size:21px;font-weight:800;margin-top:14px">Order placed!</div>
+      <div style="font-size:13.5px;color:var(--sub);margin-top:8px;line-height:1.5">Your food from <b>${r.name}</b> is being prepared.</div>
+    </div>
+
+    <div class="cardbox" style="margin-top:24px;padding:18px;text-align:center">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">ESTIMATED DELIVERY</div>
+      <div style="font-size:32px;font-weight:800;margin-top:6px">60 min</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:4px">Give or take. Mostly take.</div>
+    </div>
+
+    <div class="cardbox" style="margin-top:14px;padding:16px;display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:22px">🛵</div>
+      <div>
+        <div style="font-size:13.5px;font-weight:700">Delivery partner details</div>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.5">Your delivery partner's name and number will appear here <b>once your order is 5 minutes away</b>. Until then, please enjoy the anticipation.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-outline" onclick="nav('help')">Help &amp; support</button>
+      <button class="btn" onclick="nav('debrief')">Done</button>
+    </div>
+  </div>`;
+}
+
+
+/* ============================================================
+   PROFILE  (+ Help & Support page, Log out -> blank address)
+   ============================================================ */
+function profile(){
+  const a=M.user.addr;const full=[a.a,a.b,a.c,a.d].filter(x=>x).join(", ")||"No address added yet";
+  screen.innerHTML=`<div class="topbar"><span onclick="nav(M.cart.length?'cart':'address')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">Your account</div><span style="width:20px"></span></div>
+  <div style="padding:20px 18px 8px;display:flex;align-items:center;gap:14px"><div style="width:56px;height:56px;border-radius:50%;background:var(--red-soft);border:2px solid var(--red);display:flex;align-items:center;justify-content:center;font-size:24px">👤</div><div><div style="font-size:17px;font-weight:800">${M.user.name||"Guest user"}</div><div style="font-size:12.5px;color:var(--sub);margin-top:2px">${M.user.cc} ${M.user.phone||"number not added"}</div></div></div>
+  <div style="padding:16px 18px 4px"><div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">SAVED ADDRESSES</div>
+    <div class="cardbox" style="margin-top:8px;padding:14px"><div class="row"><div style="font-size:14px;font-weight:700">🏠 Home</div><span class="pill" style="background:var(--amber);color:#fff">Re-verify to use</span></div><div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5">${full}</div></div>
+    <div style="font-size:11.5px;color:var(--sub);margin-top:6px">This is the address you entered. You'll still be asked to confirm it again.</div></div>
+  <div style="padding:18px 18px 4px"><div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">PAST ORDERS</div>
+    <div class="cardbox" style="margin-top:8px">${M.pastOrders.map((o,i)=>`<div style="padding:13px 14px;${i<M.pastOrders.length-1?'border-bottom:1px solid var(--line)':''}"><div class="row"><div style="font-size:14px;font-weight:700">${o[0]}</div><div style="font-size:13px;font-weight:600">${o[2]}</div></div><div class="row" style="margin-top:3px"><div style="font-size:12.5px;color:var(--sub)">${o[1]}</div><div style="font-size:11.5px;color:var(--sub)">${o[3]}</div></div><button onclick="toast('Reorder unavailable — please add items again from the menu.')" class="btn-outline" style="margin-top:9px;border-radius:9px;padding:7px 16px;font-size:12.5px;font-weight:700;width:auto">Reorder</button></div>`).join("")}</div></div>
+  <div style="padding:18px 18px 4px"><div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--sub)">SAVED PAYMENT METHODS</div><div class="cardbox" style="margin-top:8px;padding:14px" class="row"><div style="font-size:14px">💳 Card ending 4242</div><span class="pill" style="background:var(--field);color:var(--sub)">Expired</span></div></div>
+  <div style="padding:18px 18px 30px">
+    <div onclick="toast('Not available in this demo.')" class="row" style="padding:15px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer">Favourites<span style="color:var(--sub)">›</span></div>
+    <div onclick="toast('Not available in this demo.')" class="row" style="padding:15px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer">Notifications<span style="color:var(--sub)">›</span></div>
+    <div onclick="nav('help')" class="row" style="padding:15px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer">Help & support<span style="color:var(--sub)">›</span></div>
+    <div onclick="logout()" class="row" style="padding:15px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer">Log out<span style="color:var(--sub)">›</span></div>
+  </div>`;
+}
+function help(){
+  screen.innerHTML=`<div class="topbar"><span onclick="nav('profile')" style="font-size:22px;cursor:pointer">‹</span><div style="font-weight:800;font-size:16px">Help & support</div><span style="width:20px"></span></div>
+  <div style="padding:26px 22px">
+    <div style="text-align:center;font-size:40px">📨</div>
+    <div style="text-align:center;font-size:18px;font-weight:800;margin-top:10px">We'll get back to you</div>
+    <div style="text-align:center;font-size:13.5px;color:var(--sub);margin-top:8px;line-height:1.6">Thanks for reaching out. Our team will revert within <b>1–2 business days</b>. Please leave your query below and someone will (probably) look at it.</div>
+    <textarea class="field" style="margin-top:20px;min-height:120px;resize:none" placeholder="Describe your issue here…"></textarea>
+    <button class="btn" style="margin-top:14px" onclick="toast('Query submitted. Expect a reply in 1–2 business days.');setTimeout(()=>nav('profile'),1400)">Submit query</button>
+  </div>`;
+}
+function logout(){ tap(); M.user={name:"",phone:"",cc:"+379",flag:"🇻🇦",addr:{a:"",b:"",c:"",d:""}}; M.cart=[]; M.listSearchShown=false; toast("You've been logged out."); M.page="address"; render(); }
+
+/* ============================================================
+   COUNTRY CODE PICKER
+   ============================================================ */
+const COUNTRIES=[["🇻🇦","+379","Vatican City"],["🇹🇻","+688","Tuvalu"],["🇳🇷","+674","Nauru"],["🇰🇮","+686","Kiribati"],["🇼🇸","+685","Samoa"],["🇹🇴","+676","Tonga"],["🇫🇯","+679","Fiji"],["🇵🇼","+680","Palau"],["🇫🇲","+691","Micronesia"],["🇲🇭","+692","Marshall Islands"],["🇸🇧","+677","Solomon Islands"],["🇻🇺","+678","Vanuatu"],["🇬🇱","+299","Greenland"],["🇫🇴","+298","Faroe Islands"],["🇦🇩","+376","Andorra"],["🇲🇨","+377","Monaco"],["🇱🇮","+423","Liechtenstein"],["🇸🇲","+378","San Marino"],["🇬🇮","+350","Gibraltar"],["🇲🇹","+356","Malta"],["🇨🇾","+357","Cyprus"],["🇮🇸","+354","Iceland"],["🇱🇺","+352","Luxembourg"],["🇪🇪","+372","Estonia"],["🇱🇻","+371","Latvia"],["🇱🇹","+370","Lithuania"],["🇲🇩","+373","Moldova"],["🇦🇲","+374","Armenia"],["🇧🇾","+375","Belarus"],["🇬🇪","+995","Georgia"],["🇦🇿","+994","Azerbaijan"],["🇰🇿","+7","Kazakhstan"],["🇲🇳","+976","Mongolia"],["🇧🇹","+975","Bhutan"],["🇲🇻","+960","Maldives"],["🇳🇵","+977","Nepal"],["🇱🇰","+94","Sri Lanka"],["🇧🇩","+880","Bangladesh"],["🇵🇰","+92","Pakistan"],["🇦🇫","+93","Afghanistan"],["🇲🇲","+95","Myanmar"],["🇰🇭","+855","Cambodia"],["🇱🇦","+856","Laos"],["🇧🇳","+673","Brunei"],["🇹🇱","+670","Timor-Leste"],["🇵🇬","+675","Papua New Guinea"],["🇳🇨","+687","New Caledonia"],["🇵🇫","+689","French Polynesia"],["🇧🇧","+1246","Barbados"],["🇯🇲","+1876","Jamaica"],["🇹🇹","+1868","Trinidad & Tobago"],["🇧🇸","+1242","Bahamas"],["🇧🇿","+501","Belize"],["🇬🇹","+502","Guatemala"],["🇸🇻","+503","El Salvador"],["🇭🇳","+504","Honduras"],["🇳🇮","+505","Nicaragua"],["🇨🇷","+506","Costa Rica"],["🇵🇦","+507","Panama"],["🇵🇪","+51","Peru"],["🇪🇨","+593","Ecuador"],["🇧🇴","+591","Bolivia"],["🇵🇾","+595","Paraguay"],["🇺🇾","+598","Uruguay"],["🇬🇾","+592","Guyana"],["🇻🇪","+58","Venezuela"],["🇨🇴","+57","Colombia"],["🇨🇱","+56","Chile"],["🇦🇷","+54","Argentina"],["🇧🇷","+55","Brazil"],["🇲🇽","+52","Mexico"],["🇨🇺","+53","Cuba"],["🇩🇿","+213","Algeria"],["🇹🇳","+216","Tunisia"],["🇱🇾","+218","Libya"],["🇪🇬","+20","Egypt"],["🇲🇦","+212","Morocco"],["🇸🇩","+249","Sudan"],["🇪🇹","+251","Ethiopia"],["🇰🇪","+254","Kenya"],["🇹🇿","+255","Tanzania"],["🇺🇬","+256","Uganda"],["🇳🇬","+234","Nigeria"],["🇬🇭","+233","Ghana"],["🇿🇦","+27","South Africa"],["🇿🇼","+263","Zimbabwe"],["🇿🇲","+260","Zambia"],["🇲🇿","+258","Mozambique"],["🇦🇴","+244","Angola"],["🇨🇲","+237","Cameroon"],["🇸🇳","+221","Senegal"],["🇨🇮","+225","Côte d'Ivoire"],["🇸🇦","+966","Saudi Arabia"],["🇦🇪","+971","UAE"],["🇶🇦","+974","Qatar"],["🇰🇼","+965","Kuwait"],["🇧🇭","+973","Bahrain"],["🇴🇲","+968","Oman"],["🇾🇪","+967","Yemen"],["🇯🇴","+962","Jordan"],["🇱🇧","+961","Lebanon"],["🇸🇾","+963","Syria"],["🇮🇶","+964","Iraq"],["🇮🇷","+98","Iran"],["🇮🇱","+972","Israel"],["🇹🇷","+90","Turkey"],["🇬🇷","+30","Greece"],["🇵🇹","+351","Portugal"],["🇪🇸","+34","Spain"],["🇫🇷","+33","France"],["🇮🇹","+39","Italy"],["🇩🇪","+49","Germany"],["🇳🇱","+31","Netherlands"],["🇧🇪","+32","Belgium"],["🇨🇭","+41","Switzerland"],["🇦🇹","+43","Austria"],["🇸🇪","+46","Sweden"],["🇳🇴","+47","Norway"],["🇩🇰","+45","Denmark"],["🇫🇮","+358","Finland"],["🇵🇱","+48","Poland"],["🇨🇿","+420","Czechia"],["🇸🇰","+421","Slovakia"],["🇭🇺","+36","Hungary"],["🇷🇴","+40","Romania"],["🇧🇬","+359","Bulgaria"],["🇷🇸","+381","Serbia"],["🇭🇷","+385","Croatia"],["🇺🇦","+380","Ukraine"],["🇷🇺","+7","Russia"],["🇬🇧","+44","United Kingdom"],["🇮🇪","+353","Ireland"],["🇨🇳","+86","China"],["🇯🇵","+81","Japan"],["🇰🇷","+82","South Korea"],["🇹🇼","+886","Taiwan"],["🇭🇰","+852","Hong Kong"],["🇲🇴","+853","Macau"],["🇸🇬","+65","Singapore"],["🇲🇾","+60","Malaysia"],["🇹🇭","+66","Thailand"],["🇻🇳","+84","Vietnam"],["🇮🇩","+62","Indonesia"],["🇵🇭","+63","Philippines"],["🇦🇺","+61","Australia"],["🇳🇿","+64","New Zealand"],["🇺🇸","+1","United States"],["🇨🇦","+1","Canada"],["🇮🇳","+91","India"],["🇧🇼","+267","Botswana"],["🇳🇦","+264","Namibia"],["🇲🇼","+265","Malawi"],["🇷🇼","+250","Rwanda"]];
+function openCC(){const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";scrim.onclick=closeSheet;const sheet=document.createElement("div");sheet.className="sheet";sheet.id="sheet";sheet.innerHTML=`<div style="padding:18px 20px 10px"><div style="width:38px;height:4px;background:#e2e2e6;border-radius:3px;margin:0 auto 14px"></div><div style="font-size:16px;font-weight:800">Select country code</div><div style="font-size:12px;color:var(--sub);margin-top:4px">Scroll to find your country.</div></div><div style="overflow-y:auto;flex:1;padding:0 8px 14px">${COUNTRIES.map((c,i)=>`<div onclick="pickCC(${i})" class="row" style="padding:13px 12px;border-bottom:1px solid var(--line);cursor:pointer"><div style="display:flex;align-items:center;gap:12px;font-size:14px"><span style="font-size:18px">${c[0]}</span><span>${c[2]}</span></div><div style="color:var(--sub);font-size:13.5px">${c[1]}</div></div>`).join("")}</div>`;document.getElementById("phone").appendChild(scrim);document.getElementById("phone").appendChild(sheet);}
+function pickCC(i){const c=COUNTRIES[i];M.user.cc=c[1];M.user.flag=c[0];tap();closeSheet();render();toast(`Country set to ${c[2]} (${c[1]})`);}
+
+/* ============================================================
+   DEBRIEF
+   ============================================================ */
+function debrief(){
+  const stars=M.fbStars||0, choice=M.fbChoice||"";
+  const rated = stars>0;
+  const reactions={1:"Ouch. Rude, but we understand.",2:"We'll take it. Barely.",3:"Middling. We can live with that.",4:"So close to greatness!",5:"We knew you had taste. 😌"};
+  screen.innerHTML=`<div class="fadein" style="padding-bottom:34px">
+    <div class="fb-hero">
+      <span class="sprinkle" style="top:18px;left:22px">✨</span>
+      <span class="sprinkle" style="top:40px;right:30px;animation-delay:-1.5s">🍽️</span>
+      <span class="sprinkle" style="bottom:26px;left:40px;animation-delay:-3s">🎉</span>
+      <span class="sprinkle" style="bottom:40px;right:22px;animation-delay:-2s">⭐</span>
+      <div style="font-size:46px" class="bob">🎊</div>
+      <div style="font-size:24px;font-weight:800;margin-top:12px;line-height:1.25">And… you did it!</div>
+      <div style="font-size:14px;opacity:.92;margin-top:10px;line-height:1.6;max-width:320px;margin-left:auto;margin-right:auto">
+        We truly hope ordering this meal gave you as much dopamine as actually <i>eating</i> it will.
+      </div>
+    </div>
+
+    <div style="padding:26px 24px 0;text-align:center">
+      <div style="font-size:18px;font-weight:800;line-height:1.35">Would you pick us over your <span class="shine">usual food app?</span></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="fb-choice ${choice==='yes'?'sel':''}" onclick="setChoice('yes')">💯 Absolutely</button>
+        <button class="fb-choice ${choice==='maybe'?'sel':''}" onclick="setChoice('maybe')">🤔 Maybe</button>
+        <button class="fb-choice ${choice==='no'?'sel':''}" onclick="setChoice('no')">🙃 Never</button>
+      </div>
+    </div>
+
+    <div style="padding:28px 24px 0;text-align:center">
+      <div style="font-size:16px;font-weight:800">Look at the screen and rate us</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px">Tap the stars. Be honest. Or don't.</div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:16px" id="stars">
+        ${[1,2,3,4,5].map(n=>`<span class="fb-star ${n<=stars?'lit':''}" onclick="setStars(${n})">⭐</span>`).join("")}
+      </div>
+      <div style="min-height:22px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--red)">${rated?reactions[stars]:""}</div>
+    </div>
+
+    ${rated?`<div style="padding:8px 24px 0" class="fadein">
+      <div class="cardbox" style="padding:16px;text-align:center;background:var(--red-soft);border-color:#f3c8ce">
+        <div style="font-size:14px;font-weight:800;color:#7a1523">Thanks for the feedback! 🙏</div>
+        <div style="font-size:12.5px;color:#7a1523;margin-top:4px;line-height:1.5">Someone somewhere will pretend to read it within 1–2 business days.</div>
+      </div>
+      <button onclick="restart()" style="width:100%;margin-top:16px;background:var(--ink);color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600">Start over</button>
+    </div>`:`<div style="padding:22px 24px 0;text-align:center">
+      <span onclick="restart()" style="font-size:12.5px;color:var(--sub);cursor:pointer;text-decoration:underline">Skip &amp; start over</span>
+    </div>`}
+  </div>`;
+}
+function setStars(n){ tap(); M.fbStars=n; render(); }
+function setChoice(c){ tap(); M.fbChoice=c; render(); }
+function restart(){
+  M.page="splash";M.taps=0;M.startTime=null;M.cart=[];M.memorizedCode="";M.codeMsg="";M.listSearchShown=false;M.activeResto=0;M.activeDish=0;M.pendingDish=null;M.searchAttempt=0;M.checkoutTries=0;M.fbStars=0;M.fbChoice="";
+  M.seed=Math.floor(Math.random()*1e9); assignDishes(M.seed); M.dishIndex=buildDishIndex();
+  M.user={name:"",phone:"",cc:"+379",flag:"🇻🇦",addr:{a:"",b:"",c:"",d:""}};
+  render();
+}
+
+/* ============================================================
+   SHEETS + RENDER
+   ============================================================ */
+function showSheet(inner){closeSheet();const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";scrim.onclick=closeSheet;const sheet=document.createElement("div");sheet.className="sheet";sheet.id="sheet";sheet.innerHTML=inner;document.getElementById("phone").appendChild(scrim);document.getElementById("phone").appendChild(sheet);}
+function closeSheet(){["scrim","sheet"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove();});}
+function render(){
+  closeSheet();const p=M.page;
+  if(p==="splash")return splash();
+  if(p==="address")return address();
+  if(p==="list")return list();
+  if(p==="options")return options();
+  if(p==="restolist")return restolist();
+  if(p==="restointro")return restointro();
+  if(p==="restaurant")return restaurant();
+  if(p==="search")return search();
+  if(p==="dish")return dish();
+  if(p==="cart")return cart();
+  if(p==="deliveryissue")return deliveryissue();
+  if(p==="orderconfirm")return orderconfirm();
+  if(p==="profile")return profile();
+  if(p==="help")return help();
+  if(p==="debrief")return debrief();
+}
+render();
+</script>
+</body>
+</html>
